@@ -4,7 +4,7 @@ const OVERLAYS = {
   3: {
     startSample: "/overlays/sample-kissco-3.png",
     preview: "/overlays/kissco-preview-3.png", // picker preview
-    final: "/overlays/kissco-3.png", // booth overlay + export overlay (transparent windows)
+    final: "/overlays/kissco-3.png", // booth overlay + export overlay
   },
   4: {
     startSample: "/overlays/sample-kissco-4.png",
@@ -221,7 +221,6 @@ export default function App() {
   }
 
   async function buildFinalStrip(photos) {
-    // Export overlay must match real pixel size
     const overlayImg = await loadImage(overlaySet.final);
     const W = overlayImg.naturalWidth || overlayImg.width;
     const H = overlayImg.naturalHeight || overlayImg.height;
@@ -259,14 +258,12 @@ export default function App() {
       const collected = [];
 
       for (let i = 0; i < frame; i++) {
-        // ✅ 5 second countdown
         for (let n = COUNTDOWN_SECONDS; n >= 1; n--) {
           setCountdown(n);
           await sleep(1000);
         }
         setCountdown(null);
 
-        // flash + shutter
         setFlashOn(true);
         try {
           if (shutterRef.current) {
@@ -280,7 +277,6 @@ export default function App() {
         const dataUrl = await captureFrameFromVideo();
         collected.push(dataUrl);
 
-        // live preview updates
         setShots([...collected]);
 
         if (i < frame - 1) await sleep(900);
@@ -324,7 +320,6 @@ export default function App() {
     }
   }
 
-  // Convert PX rects (600x1800) to % for DOM preview
   function slotPxToDomStyle(r) {
     return {
       left: `${(r.x / BASE_STRIP_W) * 100}%`,
@@ -334,12 +329,11 @@ export default function App() {
     };
   }
 
-  // ✅ IMPORTANT: Booth overlay MUST be FINAL so photos show through
   const boothOverlaySrc = overlaySet.final;
 
   return (
     <div className="app">
-      <div className="screen">
+      <div className={`screen ${step === "start" ? "startBg" : ""}`}>
         <audio ref={shutterRef} src="/assets/shutter.mp3" preload="auto" />
 
         {step === "start" && (
@@ -353,10 +347,7 @@ export default function App() {
               <button className="tapBtn" onClick={() => setStep("filter")} aria-label="Tap to start">
                 <svg className="tapSvg" viewBox="0 0 200 200">
                   <defs>
-                    <path
-                      id="circlePath"
-                      d="M 100, 100 m -74, 0 a 74,74 0 1,1 148,0 a 74,74 0 1,1 -148,0"
-                    />
+                    <path id="circlePath" d="M 100, 100 m -74, 0 a 74,74 0 1,1 148,0 a 74,74 0 1,1 -148,0" />
                   </defs>
                   <text className="tapText">
                     <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
@@ -405,27 +396,25 @@ export default function App() {
             <div className="frameChoices">
               {[3, 4].map((n) => (
                 <div key={n} className={`frameCard ${frame === n ? "selected" : ""}`} onClick={() => setFrame(n)}>
-                  <img
-                    className="frameImg"
-                    src={OVERLAYS[n].preview || OVERLAYS[n].final}
-                    alt={`frame ${n}`}
-                    loading="eager"
-                    onError={(e) => {
-                      e.currentTarget.src = OVERLAYS[n].final;
-                    }}
-                  />
+                  <div className="frameThumb">
+                    <img
+                      className="frameImg"
+                      src={OVERLAYS[n].preview || OVERLAYS[n].final}
+                      alt={`frame ${n}`}
+                      loading="eager"
+                      onError={(e) => {
+                        e.currentTarget.src = OVERLAYS[n].final;
+                      }}
+                    />
+                  </div>
                   <div className="frameLabel">{n} STRIP</div>
                 </div>
               ))}
             </div>
 
             <div className="buttonRow">
-              <button className="secondaryBtn" onClick={() => setStep("filter")}>
-                BACK
-              </button>
-              <button className="primaryBtn" onClick={() => setStep("booth")}>
-                START
-              </button>
+              <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
+              <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -452,11 +441,10 @@ export default function App() {
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap" style={{ position: "relative" }}>
+              <div className="stripPreviewWrap">
                 <div className="stripGlow" />
 
                 <div className="stripPreview">
-                  {/* photos */}
                   {slotsPx.map((r0, idx) => {
                     const domStyle = slotPxToDomStyle(r0);
                     const src = shots[idx];
@@ -469,7 +457,6 @@ export default function App() {
                           ...domStyle,
                           position: "absolute",
                           zIndex: 2,
-                          background: "#fff",
                         }}
                       >
                         {src ? (
@@ -480,7 +467,6 @@ export default function App() {
                               width: "100%",
                               height: "100%",
                               objectFit: "cover",
-                              display: "block",
                               filter: mode === "bw" ? "grayscale(1)" : "none",
                             }}
                           />
@@ -489,36 +475,20 @@ export default function App() {
                     );
                   })}
 
-                  {/* overlay on top */}
                   <img
                     className="stripOverlay"
                     src={boothOverlaySrc}
                     alt="strip overlay"
                     loading="eager"
-                    onError={(e) => {
-                      // If this fails, export & preview will fail too — makes it obvious
-                      console.error("Overlay failed to load:", boothOverlaySrc);
-                    }}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      zIndex: 5,
-                      pointerEvents: "none",
-                    }}
+                    onError={() => console.error("Overlay failed to load:", boothOverlaySrc)}
                   />
                 </div>
               </div>
             </div>
 
             <div className="buttonRowResult" style={{ marginTop: 14 }}>
-              <button className="secondaryBtn" onClick={() => setStep("frame")}>
-                BACK
-              </button>
-              <button className="primaryBtn" onClick={takePhotos}>
-                TAKE PHOTOS
-              </button>
+              <button className="secondaryBtn" onClick={() => setStep("frame")}>BACK</button>
+              <button className="primaryBtn" onClick={takePhotos}>TAKE PHOTOS</button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -540,15 +510,9 @@ export default function App() {
             </div>
 
             <div className="buttonRowResult">
-              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>
-                DOWNLOAD
-              </button>
-              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>
-                SHARE
-              </button>
-              <button className="secondaryBtn" onClick={resetAll}>
-                START OVER
-              </button>
+              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>DOWNLOAD</button>
+              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>SHARE</button>
+              <button className="secondaryBtn" onClick={resetAll}>START OVER</button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -558,3 +522,4 @@ export default function App() {
     </div>
   );
 }
+
