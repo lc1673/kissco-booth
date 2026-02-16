@@ -506,3 +506,39 @@ img, video{ display:block; }
     z-index: 2;
   }
 }
+/* =========================
+   MOBILE: TAP BUTTON OVER STRIPS
+========================= */
+@media (max-width: 700px){
+
+  .startRow{
+    position: relative;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .startStrips{
+    position: relative;
+    z-index: 1;
+  }
+
+  .startStrip{
+    width: min(70vw, 240px);
+  }
+
+  /* 🔥 Float button over strips */
+  .tapBtn{
+    position: absolute;
+    z-index: 3;
+    width: 190px;
+    height: 190px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    backdrop-filter: blur(6px);
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.35);
+  }
+
+}
