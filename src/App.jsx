@@ -3,21 +3,19 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 const OVERLAYS = {
   3: {
     startSample: "/overlays/sample-kissco-3.png",
-    preview: "/overlays/kissco-preview-3.png",
-    final: "/overlays/kissco-3.png", // we will use this for preview now
+    preview: "/overlays/kissco-preview-3.png", // picker preview
+    final: "/overlays/kissco-3.png", // booth overlay + export overlay (transparent windows)
   },
   4: {
     startSample: "/overlays/sample-kissco-4.png",
     preview: "/overlays/kissco-preview-4.png",
-    final: "/overlays/kissco-4.png", // we will use this for preview now
+    final: "/overlays/kissco-4.png",
   },
 };
 
-// Slots defined in a 600x1800 coordinate system
 const BASE_STRIP_W = 600;
 const BASE_STRIP_H = 1800;
 
-// Your exact measurements (inner photo windows)
 const SLOTS_PX = {
   4: [
     { x: 60, y: 50, w: 480, h: 385 },
@@ -32,25 +30,12 @@ const SLOTS_PX = {
   ],
 };
 
-/**
- * ✅ FINAL bleed (for exported strip)
- * - If final photos look too small inside white panel -> increase
- * - If final photos spill into text/border -> decrease
- */
 const FINAL_BLEED_BY_FRAME = {
   3: { x: 4, y: 6 },
   4: { x: 10, y: 12 },
 };
 
-/**
- * ✅ PREVIEW bleed (for booth preview only)
- * You said preview sizing is slightly off — set these LOW or 0.
- * Start with 0, then adjust if needed.
- */
-const PREVIEW_BLEED_BY_FRAME = {
-  3: { x: 0, y: 0 },
-  4: { x: 0, y: 0 },
-};
+const COUNTDOWN_SECONDS = 5;
 
 function expandRect(r, bleed) {
   return {
@@ -77,7 +62,6 @@ function waitForVideoReady(v) {
   });
 }
 
-// cover-crop drawing (like CSS object-fit: cover)
 function drawCover(ctx, img, dx, dy, dw, dh) {
   const iw = img.width;
   const ih = img.height;
@@ -106,7 +90,7 @@ async function loadImage(src) {
     const im = new Image();
     im.crossOrigin = "anonymous";
     im.onload = () => res(im);
-    im.onerror = rej;
+    im.onerror = () => rej(new Error(`Failed to load image: ${src}`));
     im.src = src;
   });
 }
@@ -128,6 +112,22 @@ export default function App() {
 
   const [shots, setShots] = useState([]); // dataURLs
   const [finalUrl, setFinalUrl] = useState("");
+
+  // Preload overlays so they don't "pop in"
+  useEffect(() => {
+    const urls = [
+      OVERLAYS[3].startSample,
+      OVERLAYS[3].preview,
+      OVERLAYS[3].final,
+      OVERLAYS[4].startSample,
+      OVERLAYS[4].preview,
+      OVERLAYS[4].final,
+    ];
+    urls.forEach((u) => {
+      const img = new Image();
+      img.src = u;
+    });
+  }, []);
 
   // Start camera only in booth
   useEffect(() => {
@@ -176,7 +176,7 @@ export default function App() {
     setFrame(4);
     setShots([]);
     setFinalUrl("");
-    setCountdown(5);
+    setCountdown(null);
     setFlashOn(false);
     setStep("start");
   }
@@ -190,6 +190,7 @@ export default function App() {
     const vw = v.videoWidth || 1280;
     const vh = v.videoHeight || 720;
 
+    // Higher-res capture for nicer strip quality
     const outW = 1600;
     const outH = Math.round((outW * vh) / vw);
 
@@ -220,7 +221,7 @@ export default function App() {
   }
 
   async function buildFinalStrip(photos) {
-    // Load overlay FIRST so canvas matches overlay’s REAL pixel size
+    // Export overlay must match real pixel size
     const overlayImg = await loadImage(overlaySet.final);
     const W = overlayImg.naturalWidth || overlayImg.width;
     const H = overlayImg.naturalHeight || overlayImg.height;
@@ -237,16 +238,14 @@ export default function App() {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Photos under final overlay
-    const finalBleed = FINAL_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
+    const bleed = FINAL_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
     imgs.forEach((im, i) => {
       const r0 = slotsPx[i];
       if (!r0) return;
-      const r = expandRect(r0, finalBleed);
+      const r = expandRect(r0, bleed);
       drawCover(ctx, im, r.x * sx, r.y * sy, r.w * sx, r.h * sy);
     });
 
-    // Overlay on top
     ctx.drawImage(overlayImg, 0, 0, W, H);
 
     return canvas.toDataURL("image/png");
@@ -260,12 +259,14 @@ export default function App() {
       const collected = [];
 
       for (let i = 0; i < frame; i++) {
-        for (let n = 3; n >= 1; n--) {
+        // ✅ 5 second countdown
+        for (let n = COUNTDOWN_SECONDS; n >= 1; n--) {
           setCountdown(n);
-          await sleep(650);
+          await sleep(1000);
         }
         setCountdown(null);
 
+        // flash + shutter
         setFlashOn(true);
         try {
           if (shutterRef.current) {
@@ -279,17 +280,17 @@ export default function App() {
         const dataUrl = await captureFrameFromVideo();
         collected.push(dataUrl);
 
-        // preview updates as you capture
+        // live preview updates
         setShots([...collected]);
 
-        if (i < frame - 1) await sleep(1100);
+        if (i < frame - 1) await sleep(900);
       }
 
       const built = await buildFinalStrip(collected);
       setFinalUrl(built);
       setStep("result");
     } catch (e) {
-      console.error(e);
+      console.error("FINAL STRIP ERROR:", e);
       alert("Something went wrong while building the strip.");
     }
   }
@@ -323,7 +324,7 @@ export default function App() {
     }
   }
 
-  // Convert PX rects (600x1800 system) to % for responsive DOM preview positioning
+  // Convert PX rects (600x1800) to % for DOM preview
   function slotPxToDomStyle(r) {
     return {
       left: `${(r.x / BASE_STRIP_W) * 100}%`,
@@ -333,8 +334,8 @@ export default function App() {
     };
   }
 
-  // ✅ You requested: use kissco-3 & kissco-4 in preview
-  const previewSrc = overlaySet.final;
+  // ✅ IMPORTANT: Booth overlay MUST be FINAL so photos show through
+  const boothOverlaySrc = overlaySet.final;
 
   return (
     <div className="app">
@@ -404,7 +405,15 @@ export default function App() {
             <div className="frameChoices">
               {[3, 4].map((n) => (
                 <div key={n} className={`frameCard ${frame === n ? "selected" : ""}`} onClick={() => setFrame(n)}>
-                <img className="frameImg" src={OVERLAYS[n].preview} alt={`frame ${n}`} />
+                  <img
+                    className="frameImg"
+                    src={OVERLAYS[n].preview || OVERLAYS[n].final}
+                    alt={`frame ${n}`}
+                    loading="eager"
+                    onError={(e) => {
+                      e.currentTarget.src = OVERLAYS[n].final;
+                    }}
+                  />
                   <div className="frameLabel">{n} STRIP</div>
                 </div>
               ))}
@@ -427,10 +436,10 @@ export default function App() {
           <>
             <div className="boothHeader">
               <div className="titleSmall">GET READY!</div>
-              <div className="subSmall">THERE IS A 5 SECOND TIMER BETWEEN SHOTS.</div>
+              <div className="subSmall">THERE IS A {COUNTDOWN_SECONDS} SECOND TIMER BETWEEN SHOTS.</div>
             </div>
 
-            <div className="boothGrid" style={{ alignItems: "center", gap: 28 }}>
+            <div className="boothGrid" style={{ alignItems: "center", gap: 26 }}>
               <div className="cameraWrap">
                 <video
                   className={`video ${mode === "bw" ? "bw" : ""}`}
@@ -438,80 +447,19 @@ export default function App() {
                   autoPlay
                   playsInline
                   muted
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    transform: "scaleX(-1)",
-                  }}
                 />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div
-                className="stripPreviewWrap"
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: 800,
-                  overflow: "visible",
-                }}
-              >
-                {/* glow behind strip */}
-                <div
-                  className="stripGlow"
-                  style={{
-                    position: "absolute",
-                    inset: -18,
-                    background:
-                      "radial-gradient(circle at 50% 20%, rgba(255,140,200,0.35), rgba(50,80,140,0.10) 60%, rgba(0,0,0,0) 75%)",
-                    filter: "blur(18px)",
-                    zIndex: 0,
-                    pointerEvents: "none",
-                  }}
-                />
+              <div className="stripPreviewWrap" style={{ position: "relative" }}>
+                <div className="stripGlow" />
 
-                <div
-                  className="stripPreview"
-                  style={{
-                    position: "relative",
-                    width: "clamp(190px, 18vw, 260px)",
-                    aspectRatio: "600 / 1800",
-                    overflow: "hidden",
-                    borderRadius: 0,
-                    boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-                    zIndex: 1,
-                    background: "transparent",
-                  }}
-                >
-                  {/* White boxes UNDER images (so empty state looks right) */}
+                <div className="stripPreview">
+                  {/* photos */}
                   {slotsPx.map((r0, idx) => {
-                    const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
-                    const r = expandRect(r0, previewBleed);
-                    const domStyle = slotPxToDomStyle(r);
-
-                    return (
-                      <div
-                        key={`ph-${idx}`}
-                        style={{
-                          ...domStyle,
-                          position: "absolute",
-                          background: "#ffffff",
-                          zIndex: 1,
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Photos (BEHIND strip overlay, on top of white boxes) */}
-                  {slotsPx.map((r0, idx) => {
+                    const domStyle = slotPxToDomStyle(r0);
                     const src = shots[idx];
-                    const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
-                    const r = expandRect(r0, previewBleed);
-                    const domStyle = slotPxToDomStyle(r);
 
                     return (
                       <div
@@ -520,14 +468,12 @@ export default function App() {
                         style={{
                           ...domStyle,
                           position: "absolute",
-                          overflow: "hidden",
                           zIndex: 2,
-                          borderRadius: 0,
+                          background: "#fff",
                         }}
                       >
                         {src ? (
                           <img
-                            className="previewImg"
                             src={src}
                             alt={`shot ${idx + 1}`}
                             style={{
@@ -535,7 +481,7 @@ export default function App() {
                               height: "100%",
                               objectFit: "cover",
                               display: "block",
-                              borderRadius: 0,
+                              filter: mode === "bw" ? "grayscale(1)" : "none",
                             }}
                           />
                         ) : null}
@@ -543,11 +489,16 @@ export default function App() {
                     );
                   })}
 
-                  {/* Strip overlay ON TOP so frame elements are visible */}
+                  {/* overlay on top */}
                   <img
                     className="stripOverlay"
-                    src={previewSrc}
-                    alt="preview strip overlay"
+                    src={boothOverlaySrc}
+                    alt="strip overlay"
+                    loading="eager"
+                    onError={(e) => {
+                      // If this fails, export & preview will fail too — makes it obvious
+                      console.error("Overlay failed to load:", boothOverlaySrc);
+                    }}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -555,14 +506,13 @@ export default function App() {
                       height: "100%",
                       zIndex: 5,
                       pointerEvents: "none",
-                      borderRadius: 0,
                     }}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="buttonRowResult" style={{ marginTop: 22 }}>
+            <div className="buttonRowResult" style={{ marginTop: 14 }}>
               <button className="secondaryBtn" onClick={() => setStep("frame")}>
                 BACK
               </button>
@@ -583,15 +533,7 @@ export default function App() {
 
             <div className="resultWrap">
               {finalUrl ? (
-                <img
-                  className="finalStrip"
-                  src={finalUrl}
-                  alt="final strip"
-                  style={{
-                    maxHeight: "60vh",
-                    width: "auto",
-                  }}
-                />
+                <img className="finalStrip" src={finalUrl} alt="final strip" />
               ) : (
                 <div className="loadingBox">BUILDING…</div>
               )}
