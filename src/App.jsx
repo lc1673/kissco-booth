@@ -503,11 +503,12 @@ export default function App() {
 
             <div className="resultWrap">
               {finalUrl ? (
-                <img className="finalStrip" src={finalUrl} alt="final strip" />
-              ) : (
-                <div className="loadingBox">BUILDING…</div>
-              )}
+              <div className="finalCard">
+              <img className="finalStrip" src={finalUrl} alt="final strip" />
             </div>
+          ) : (
+             <div className="loadingBox">BUILDING…</div>
+            )}
 
             <div className="buttonRowResult">
               <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>DOWNLOAD</button>

@@ -204,7 +204,7 @@ img, video{ display:block; }
   padding: 14px 22px;
   border-radius: 14px;
   border: 0;
-  background: rgba(255,139,199,0.95);
+  background:#5CB5E8;
   color: white;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -239,7 +239,7 @@ img, video{ display:block; }
 .frameCard{
   flex: 0 0 210px;              /* ✅ keeps strips smaller */
   width: 210px;
-  border-radius: 18px;
+  border-radius: 0px;
   border: 1px solid rgba(255,255,255,0.16);
   background: rgba(0,0,0,0.25);
   padding: 12px;
@@ -541,4 +541,74 @@ img, video{ display:block; }
     border: 1px solid rgba(255,255,255,0.35);
   }
 
+}
+/* =========================
+   MOBILE BOOTH LAYOUT FIX
+   (make camera + strip + buttons fit)
+========================= */
+@media (max-width: 700px){
+
+  /* less empty space */
+  .screen{
+    gap: 10px;
+    padding: 14px 12px;
+    justify-content: flex-start;
+  }
+
+  .boothGrid{
+    gap: 12px;
+  }
+
+  /* Camera: keep wide but not too tall */
+  .cameraWrap{
+    width: 92vw;
+    max-width: 760px;
+    aspect-ratio: 16 / 9;
+    max-height: 30dvh;  /* ✅ smaller than before */
+  }
+
+  /* Preview strip: make it smaller so buttons don't feel cramped */
+  .stripPreview{
+    width: min(70vw, 260px);
+    max-height: 28dvh;
+  }
+
+  /* Buttons: full width, comfy */
+  .buttonRowResult{
+    width: 100%;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .primaryBtn, .secondaryBtn{
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+/* super short phones safety */
+@media (max-width:700px) and (max-height:720px){
+  .cameraWrap{ max-height: 26dvh; }
+  .stripPreview{ max-height: 24dvh; width: min(68vw, 240px); }
+}
+/* =========================
+   FINAL STRIP GRADIENT CARD
+========================= */
+.finalCard{
+  padding: 14px;
+  border-radius: 22px;
+  background:
+    radial-gradient(420px 520px at 50% 10%, rgba(255,139,199,0.35) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(520px 520px at 50% 90%, rgba(92,181,232,0.22) 0%, rgba(0,0,0,0) 65%),
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.22));
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 30px 90px rgba(0,0,0,0.6);
+}
+
+.finalStrip{
+  width: min(92vw, 420px);
+  height: auto;
+  display: block;
+  border-radius: 16px;
+  box-shadow: 0 22px 80px rgba(0,0,0,0.55);
 }
