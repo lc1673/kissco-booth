@@ -99,45 +99,30 @@ body{
 }
 
 /* ---------------- START ---------------- */
-.startRow{
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: clamp(18px, 5vw, 70px);
-  flex: 1;
-}
+/* ✅ Mobile: construct start screen (no tiny button) */
+@media (max-width: 700px){
+  .startRow{
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+  }
 
-.startStrips{
-  display:flex;
-  gap: 18px;
-  align-items:center;
-  justify-content:center;
-}
+  .startStrips{
+    width: 100%;
+    justify-content: center;
+    gap: 12px;
+  }
 
-.startStrip{
-  width: clamp(150px, 34vw, 240px);
-  height:auto;
-  filter: drop-shadow(0 18px 50px rgba(0,0,0,0.6));
-}
+  .startStrip{
+    width: 44vw;         /* two strips side-by-side */
+    max-width: 210px;
+  }
 
-.tiltLeft{ transform: rotate(-10deg); }
-.tiltRight{ transform: rotate(10deg); }
-
-/* circular ring button */
-.tapBtn{
-  width: clamp(150px, 42vw, 190px);
-  height: clamp(150px, 42vw, 190px);
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.10);
-  backdrop-filter: blur(6px);
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  position:relative;
-  padding:0;
-  outline:none;
+  .tapBtn{
+    width: 190px;        /* ✅ bigger tap target */
+    height: 190px;
+  }
 }
 
 .tapBtn:hover{ border-color: rgba(255,139,199,0.45); }
@@ -240,18 +225,28 @@ body{
 /* ---------------- FRAME ---------------- */
 .frameChoices{
   display:flex;
-  gap: 18px;
-  flex-wrap:wrap;
+  gap: 14px;
   justify-content:center;
+  align-items: stretch;
+  flex-wrap: nowrap;           /* ✅ no stacking */
+  width: 100%;
+  max-width: 520px;            /* keeps it tight on mobile */
 }
 
 .frameCard{
-  width: min(220px, 44vw);
+  flex: 1;                     /* ✅ equal columns */
+  width: auto;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.16);
   background: rgba(0,0,0,0.25);
   padding: 12px;
   cursor:pointer;
+  min-width: 0;                /* prevents overflow */
+}
+
+@media (max-width: 420px){
+  .frameChoices{ gap: 10px; }
+  .frameCard{ padding: 10px; }
 }
 
 .frameCard.selected{
