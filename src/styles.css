@@ -4,6 +4,10 @@
   --bg1:#05060a;
   --bg2:#0b0d18;
   --white:#ffffff;
+
+  /* “desktop canvas” size */
+  --deskW: 1100;
+  --deskH: 720;
 }
 
 *{ box-sizing:border-box; }
@@ -20,6 +24,7 @@ body{
   overflow-x:hidden;
 }
 
+/* Center the scaled “desktop canvas” */
 .app{
   min-height:100vh;
   display:flex;
@@ -28,16 +33,45 @@ body{
   padding: 24px;
 }
 
+/* ---------------------------
+   LOCKED DESKTOP CANVAS
+   - Always render at desktop size
+   - Scale down on small screens
+---------------------------- */
 .screen{
-  width: min(1200px, 100%);
-  min-height: min(720px, 90vh);
+  width: calc(var(--deskW) * 1px);
+  min-height: calc(var(--deskH) * 1px);
   position:relative;
+
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   gap: 18px;
+
+  transform-origin: top center;
 }
+
+/* Scale to fit viewport (width + height) */
+@media (max-width: 1200px), (max-height: 820px){
+  .screen{
+    /* scale = min( (vw-48)/deskW , (vh-48)/deskH ) */
+    transform:
+      scale(
+        min(
+          calc((100vw - 48px) / (var(--deskW) * 1px)),
+          calc((100vh - 48px) / (var(--deskH) * 1px))
+        )
+      );
+  }
+}
+
+/* If a super short phone screen, allow slight scroll rather than clipping */
+@media (max-height: 680px){
+  .app{ align-items:flex-start; }
+}
+
+/* ------------------------------------ */
 
 .center{ text-align:center; }
 
@@ -116,9 +150,7 @@ body{
   outline:none;
 }
 
-.tapBtn:hover{
-  border-color: rgba(255,139,199,0.45);
-}
+.tapBtn:hover{ border-color: rgba(255,139,199,0.45); }
 
 .tapSvg{
   position:absolute;
@@ -267,10 +299,11 @@ body{
   gap: 6px;
 }
 
+/* KEEP DESKTOP GRID ALWAYS */
 .boothGrid{
   width:100%;
   display:grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 320px;   /* always side-by-side */
   gap: 26px;
   align-items:center;
   justify-content:center;
@@ -278,7 +311,7 @@ body{
 
 .cameraWrap{
   position:relative;
-  width: min(760px, 66vw);
+  width: 760px;                 /* fixed desktop feel */
   aspect-ratio: 16 / 9;
   border-radius: 22px;
   overflow:hidden;
@@ -319,20 +352,19 @@ body{
 }
 .flash.on{ opacity: 0.95; }
 
-/* ---------------- LIVE PREVIEW STRIP (RIGHT) ---------------- */
-/* The KEY fix is: each slot is a clipping box + the IMG fills it */
-.stripPreviewWrap {
+/* ---------------- LIVE PREVIEW STRIP ---------------- */
+.stripPreviewWrap{
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
-/* glow BEHIND the strip */
-.stripGlow {
-  position: absolute;
+/* glow behind strip */
+.stripGlow{
+  position:absolute;
   inset: -18px;
-  border-radius: 0;              /* keep square */
+  border-radius: 0;
   background: radial-gradient(
     circle at 50% 20%,
     rgba(255, 140, 200, 0.35),
@@ -341,41 +373,47 @@ body{
   );
   filter: blur(18px);
   z-index: 0;
-  pointer-events: none;
+  pointer-events:none;
 }
 
-/* the strip */
-.stripPreview {
+.stripPreview{
   position: relative;
-  width: clamp(190px, 18vw, 260px);
+  width: 260px;
   aspect-ratio: 600 / 1800;
   overflow: hidden;
-  border-radius: 0;              /* keep square */
+  border-radius: 0;
   box-shadow: 0 20px 60px rgba(0,0,0,0.45);
   z-index: 1;
+  background: rgba(0,0,0,0.15);
 }
 
-/* overlay should be above photos */
-.stripOverlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 5;
-  pointer-events: none;
+/* slots are the white windows */
+.previewSlot{
+  position:absolute;
+  overflow:hidden;
+  background:#fff;
+  border-radius:0;
+  z-index:2;
 }
 
-/* the actual image */
 .previewSlot img{
   width:100%;
   height:100%;
-  object-fit: cover;        /* ✅ fills box without squish */
-  object-position: center;
   display:block;
+  object-fit: cover;
+  object-position:center;
 }
 
-.previewSlot.bw img{
-  filter: grayscale(1);
+.previewSlot.bw img{ filter: grayscale(1); }
+
+.stripOverlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: contain;
+  z-index: 5;
+  pointer-events:none;
 }
 
 /* ---------------- RESULT ---------------- */
@@ -411,54 +449,6 @@ body{
   flex-wrap:wrap;
 }
 
-/* ---------------- MOBILE ---------------- */
-@media (max-width: 900px){
-  .startRow{
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .boothGrid{
-    grid-template-columns: 1fr;
-    justify-items:center;
-  }
-
-  .cameraWrap{
-    width: min(92vw, 760px);
-  }
-
-  .stripPreviewWrap{
-    width: min(54vw, 260px);
-  }
-}
-/* ✅ PREVIEW SLOTS: make sure images fill the white boxes correctly */
-.previewSlot{
-  position: absolute;     /* REQUIRED because you use left/top/width/height */
-  overflow: hidden;       /* crops cleanly inside the window */
-  background: #fff;       /* keeps blank slots white */
-  border-radius: 0px;     /* optional */
-  z-index: 2;             /* under overlay, above background */
-}
-
-.previewSlot img{
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;      /* ✅ prevents stretching */
-  object-position: center;
-}
-
-.previewSlot.bw img{
-  filter: grayscale(1);
-}
-
-/* overlay stays on top */
-.stripOverlay{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit: contain;
-  z-index: 3;
-  pointer-events:none;
-}
+/* IMPORTANT:
+   Remove/avoid any other @media rules that change layout (stacking).
+   We are scaling instead of reflowing. */

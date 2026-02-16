@@ -176,7 +176,7 @@ export default function App() {
     setFrame(4);
     setShots([]);
     setFinalUrl("");
-    setCountdown(null);
+    setCountdown(5);
     setFlashOn(false);
     setStep("start");
   }
@@ -427,7 +427,7 @@ export default function App() {
           <>
             <div className="boothHeader">
               <div className="titleSmall">GET READY!</div>
-              <div className="subSmall">THERE IS A 3 SECOND TIMER BETWEEN SHOTS.</div>
+              <div className="subSmall">THERE IS A 5 SECOND TIMER BETWEEN SHOTS.</div>
             </div>
 
             <div className="boothGrid" style={{ alignItems: "center", gap: 28 }}>
@@ -578,7 +578,7 @@ export default function App() {
         {step === "result" && (
           <>
             <div className="center">
-              <div className="titleSmall">YOUR LOOK SO GOOD!</div>
+              <div className="titleSmall">YOU LOOK SO GOOD!</div>
             </div>
 
             <div className="resultWrap">
