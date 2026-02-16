@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 const OVERLAYS = {
   3: {
     startSample: "/overlays/sample-kissco-3.png",
-    preview: "/overlays/kissco-preview-3.png", // picker preview
-    final: "/overlays/kissco-3.png", // booth overlay + export overlay
+    preview: "/overlays/kissco-preview-3.png", // booth preview overlay
+    final: "/overlays/kissco-3.png", // export overlay
   },
   4: {
     startSample: "/overlays/sample-kissco-4.png",
@@ -95,6 +95,25 @@ async function loadImage(src) {
   });
 }
 
+function isIOSDevice() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS13Plus =
+    ua.includes("Macintosh") && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1;
+  return iOS || iPadOS13Plus;
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [meta, data] = dataUrl.split(",");
+  const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/png";
+  const bin = atob(data);
+  const len = bin.length;
+  const arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 export default function App() {
   const [step, setStep] = useState("start"); // start | filter | frame | booth | result
   const [mode, setMode] = useState(null); // "color" | "bw"
@@ -112,6 +131,17 @@ export default function App() {
 
   const [shots, setShots] = useState([]); // dataURLs
   const [finalUrl, setFinalUrl] = useState("");
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  // responsive flag
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 860px)");
+    const set = () => setIsMobile(mq.matches);
+    set();
+    mq.addEventListener?.("change", set);
+    return () => mq.removeEventListener?.("change", set);
+  }, []);
 
   // Preload overlays so they don't "pop in"
   useEffect(() => {
@@ -138,7 +168,11 @@ export default function App() {
     async function startCam() {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
           audio: false,
         });
 
@@ -190,7 +224,7 @@ export default function App() {
     const vw = v.videoWidth || 1280;
     const vh = v.videoHeight || 720;
 
-    // Higher-res capture for nicer strip quality
+    // higher-res capture
     const outW = 1600;
     const outH = Math.round((outW * vh) / vw);
 
@@ -276,7 +310,6 @@ export default function App() {
 
         const dataUrl = await captureFrameFromVideo();
         collected.push(dataUrl);
-
         setShots([...collected]);
 
         if (i < frame - 1) await sleep(900);
@@ -291,19 +324,48 @@ export default function App() {
     }
   }
 
-  function downloadStrip() {
+  async function downloadStrip() {
     if (!finalUrl) return;
-    const a = document.createElement("a");
-    a.href = finalUrl;
-    a.download = `kissco-strip-${frame}-${mode || "color"}.png`;
-    a.click();
+
+    // iOS Safari hates "download" on data URLs; use Blob + objectURL + fallback
+    try {
+      const blob = finalUrl.startsWith("data:")
+        ? dataUrlToBlob(finalUrl)
+        : await (await fetch(finalUrl)).blob();
+
+      const url = URL.createObjectURL(blob);
+      const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
+
+      // iOS: open in new tab so user can long-press / save
+      if (isIOSDevice()) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        // revoke later
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+        return;
+      }
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch (e) {
+      console.error(e);
+      // final fallback: open the image
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+    }
   }
 
   async function shareStrip() {
     if (!finalUrl) return;
     try {
-      const res = await fetch(finalUrl);
-      const blob = await res.blob();
+      const blob = finalUrl.startsWith("data:")
+        ? dataUrlToBlob(finalUrl)
+        : await (await fetch(finalUrl)).blob();
+
       const file = new File([blob], "kissco-strip.png", { type: "image/png" });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -313,10 +375,10 @@ export default function App() {
           files: [file],
         });
       } else {
-        downloadStrip();
+        await downloadStrip();
       }
     } catch {
-      downloadStrip();
+      await downloadStrip();
     }
   }
 
@@ -329,7 +391,8 @@ export default function App() {
     };
   }
 
-  const boothOverlaySrc = overlaySet.final;
+  // ✅ booth uses PREVIEW overlay so spacing matches what user saw in picker
+  const boothOverlaySrc = overlaySet.preview || overlaySet.final;
 
   return (
     <div className="app">
@@ -355,7 +418,7 @@ export default function App() {
                     </textPath>
                   </text>
                 </svg>
-                <div className="tapCenter"></div>
+                <div className="tapCenter" />
               </button>
             </div>
 
@@ -413,8 +476,12 @@ export default function App() {
             </div>
 
             <div className="buttonRow">
-              <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
-              <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
+              <button className="secondaryBtn" onClick={() => setStep("filter")}>
+                BACK
+              </button>
+              <button className="primaryBtn" onClick={() => setStep("booth")}>
+                START
+              </button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -428,23 +495,36 @@ export default function App() {
               <div className="subSmall">THERE IS A {COUNTDOWN_SECONDS} SECOND TIMER BETWEEN SHOTS.</div>
             </div>
 
-            <div className="boothGrid" style={{ alignItems: "center", gap: 26 }}>
-              <div className="cameraWrap">
-                <video
-                  className={`video ${mode === "bw" ? "bw" : ""}`}
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                />
+            <div
+              className="boothGrid"
+              style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: isMobile ? 18 : 26,
+              }}
+            >
+              <div className="cameraWrap" style={{ width: isMobile ? "min(92vw, 520px)" : undefined }}>
+                <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap">
+              <div className="stripPreviewWrap" style={{ width: isMobile ? "min(72vw, 360px)" : undefined }}>
                 <div className="stripGlow" />
 
-                <div className="stripPreview">
+                <div
+                  className="stripPreview"
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    aspectRatio: `${BASE_STRIP_W} / ${BASE_STRIP_H}`,
+                    height: "auto",
+                    overflow: "hidden",
+                    borderRadius: 18,
+                  }}
+                >
                   {slotsPx.map((r0, idx) => {
                     const domStyle = slotPxToDomStyle(r0);
                     const src = shots[idx];
@@ -457,6 +537,7 @@ export default function App() {
                           ...domStyle,
                           position: "absolute",
                           zIndex: 2,
+                          overflow: "hidden",
                         }}
                       >
                         {src ? (
@@ -480,6 +561,15 @@ export default function App() {
                     src={boothOverlaySrc}
                     alt="strip overlay"
                     loading="eager"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      zIndex: 3,
+                      pointerEvents: "none",
+                    }}
                     onError={() => console.error("Overlay failed to load:", boothOverlaySrc)}
                   />
                 </div>
@@ -487,8 +577,12 @@ export default function App() {
             </div>
 
             <div className="buttonRowResult" style={{ marginTop: 14 }}>
-              <button className="secondaryBtn" onClick={() => setStep("frame")}>BACK</button>
-              <button className="primaryBtn" onClick={takePhotos}>TAKE PHOTOS</button>
+              <button className="secondaryBtn" onClick={() => setStep("frame")}>
+                BACK
+              </button>
+              <button className="primaryBtn" onClick={takePhotos}>
+                TAKE PHOTOS
+              </button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -501,19 +595,52 @@ export default function App() {
               <div className="titleSmall">YOU LOOK SO GOOD!</div>
             </div>
 
-            <div className="resultWrap">
+            <div
+              className="resultWrap"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 14,
+                paddingBottom: 18,
+              }}
+            >
               {finalUrl ? (
-              <div className="finalCard">
-              <img className="finalStrip" src={finalUrl} alt="final strip" />
-            </div>
-          ) : (
-             <div className="loadingBox">BUILDING…</div>
-            )}
+                <div
+                  className="finalCard"
+                  style={{
+                    width: "min(92vw, 420px)",
+                    maxHeight: "65vh",
+                    overflow: "auto",
+                    borderRadius: 18,
+                  }}
+                >
+                  <img
+                    className="finalStrip"
+                    src={finalUrl}
+                    alt="final strip"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="loadingBox">BUILDING…</div>
+              )}
 
-            <div className="buttonRowResult">
-              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>DOWNLOAD</button>
-              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>SHARE</button>
-              <button className="secondaryBtn" onClick={resetAll}>START OVER</button>
+              <div className="buttonRowResult" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+                <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>
+                  DOWNLOAD
+                </button>
+                <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>
+                  SHARE
+                </button>
+                <button className="secondaryBtn" onClick={resetAll}>
+                  START OVER
+                </button>
+              </div>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
@@ -523,4 +650,3 @@ export default function App() {
     </div>
   );
 }
-
