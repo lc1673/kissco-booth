@@ -1,0 +1,464 @@
+:root{
+  --pink: rgb(255,139,199);
+  --blue:#5CB5E8;
+  --bg1:#05060a;
+  --bg2:#0b0d18;
+  --white:#ffffff;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--white);
+  background:
+    radial-gradient(900px 600px at 50% 40%, rgba(255,139,199,0.18) 0%, rgba(92,181,232,0.08) 35%, rgba(0,0,0,0) 70%),
+    radial-gradient(1100px 800px at 30% 70%, rgba(92,181,232,0.10) 0%, rgba(0,0,0,0) 65%),
+    linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
+  overflow-x:hidden;
+}
+
+.app{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 24px;
+}
+
+.screen{
+  width: min(1200px, 100%);
+  min-height: min(720px, 90vh);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap: 18px;
+}
+
+.center{ text-align:center; }
+
+.title{
+  font-size: clamp(26px, 3vw, 44px);
+  letter-spacing: 0.08em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.titleSmall{
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.subSmall{
+  opacity:0.8;
+  font-size: 12px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+}
+
+.credit{
+  position:absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  opacity: 0.7;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.credit.lower{ bottom: -100px; }
+
+/* ---------------- START ---------------- */
+.startRow{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: clamp(20px, 6vw, 90px);
+}
+
+.startStrips{
+  display:flex;
+  gap: 24px;
+  align-items:center;
+  justify-content:center;
+}
+
+.startStrip{
+  width: clamp(170px, 18vw, 240px);
+  height:auto;
+  filter: drop-shadow(0 18px 50px rgba(0,0,0,0.6));
+}
+
+.tiltLeft{ transform: rotate(-10deg); }
+.tiltRight{ transform: rotate(10deg); }
+
+/* circular ring button */
+.tapBtn{
+  width: 190px;
+  height: 190px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.10);
+  backdrop-filter: blur(6px);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  position:relative;
+  padding:0;
+  outline:none;
+}
+
+.tapBtn:hover{
+  border-color: rgba(255,139,199,0.45);
+}
+
+.tapSvg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  animation: spin 10s linear infinite;
+}
+
+.tapText{
+  fill: var(--pink);
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  font-size: 12.7px;
+  text-transform: uppercase;
+}
+
+.tapCenter{
+  color: var(--pink);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+@keyframes spin{
+  from{ transform: rotate(0deg); }
+  to{ transform: rotate(360deg); }
+}
+
+/* ---------------- FILTER ---------------- */
+.buttonRow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 18px;
+  flex-wrap:wrap;
+}
+
+.orText{
+  opacity:0.8;
+  letter-spacing:0.18em;
+  font-weight:900;
+  text-transform: uppercase;
+}
+
+.bigPill{
+  min-width: 180px;
+  padding: 18px 28px;
+  border-radius: 16px;
+  border: 0;
+  background: rgba(255,139,199,0.92);
+  color: white;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  cursor:pointer;
+  box-shadow: 0 20px 50px rgba(255,139,199,0.25);
+  text-transform: uppercase;
+  font-size: 18px;
+}
+
+.bigPill.active{
+  outline: 2px solid rgba(255,255,255,0.35);
+  transform: translateY(-1px);
+}
+
+.primaryBtn{
+  padding: 14px 22px;
+  border-radius: 14px;
+  border: 0;
+  background: rgba(255,139,199,0.95);
+  color: white;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  cursor:pointer;
+  text-transform: uppercase;
+  box-shadow: 0 16px 40px rgba(255,139,199,0.25);
+}
+
+.primaryBtn:disabled{
+  opacity:0.55;
+  cursor:not-allowed;
+}
+
+.secondaryBtn{
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.2);
+  color: white;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  cursor:pointer;
+  text-transform: uppercase;
+}
+
+/* ---------------- FRAME ---------------- */
+.frameChoices{
+  display:flex;
+  gap: 18px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.frameCard{
+  width: 220px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.25);
+  padding: 12px;
+  cursor:pointer;
+}
+
+.frameCard.selected{
+  border-color: rgba(255,139,199,0.55);
+  box-shadow: 0 18px 60px rgba(255,139,199,0.10);
+}
+
+.frameImg{
+  width:100%;
+  height:auto;
+  display:block;
+  border-radius: 12px;
+  filter: drop-shadow(0 12px 34px rgba(0,0,0,0.5));
+}
+
+.frameLabel{
+  margin-top: 10px;
+  color: white;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+/* ---------------- BOOTH ---------------- */
+.boothHeader{
+  position:absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+}
+
+.boothGrid{
+  width:100%;
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 26px;
+  align-items:center;
+  justify-content:center;
+}
+
+.cameraWrap{
+  position:relative;
+  width: min(760px, 66vw);
+  aspect-ratio: 16 / 9;
+  border-radius: 22px;
+  overflow:hidden;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.25);
+  box-shadow: 0 25px 80px rgba(0,0,0,0.55);
+}
+
+.video{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display:block;
+}
+.video.bw{ filter: grayscale(1); }
+
+.countdown{
+  position:absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-shadow: 0 14px 40px rgba(0,0,0,0.6);
+  z-index: 10;
+}
+
+.flash{
+  position:absolute;
+  inset:0;
+  background: white;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 120ms linear;
+  z-index: 12;
+}
+.flash.on{ opacity: 0.95; }
+
+/* ---------------- LIVE PREVIEW STRIP (RIGHT) ---------------- */
+/* The KEY fix is: each slot is a clipping box + the IMG fills it */
+.stripPreviewWrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* glow BEHIND the strip */
+.stripGlow {
+  position: absolute;
+  inset: -18px;
+  border-radius: 0;              /* keep square */
+  background: radial-gradient(
+    circle at 50% 20%,
+    rgba(255, 140, 200, 0.35),
+    rgba(50, 80, 140, 0.08) 60%,
+    rgba(0, 0, 0, 0) 75%
+  );
+  filter: blur(18px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* the strip */
+.stripPreview {
+  position: relative;
+  width: clamp(190px, 18vw, 260px);
+  aspect-ratio: 600 / 1800;
+  overflow: hidden;
+  border-radius: 0;              /* keep square */
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  z-index: 1;
+}
+
+/* overlay should be above photos */
+.stripOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* the actual image */
+.previewSlot img{
+  width:100%;
+  height:100%;
+  object-fit: cover;        /* ✅ fills box without squish */
+  object-position: center;
+  display:block;
+}
+
+.previewSlot.bw img{
+  filter: grayscale(1);
+}
+
+/* ---------------- RESULT ---------------- */
+.resultWrap{
+  position:relative;
+  width: clamp(220px, 22vw, 320px);
+}
+
+.finalStrip{
+  width:100%;
+  height:auto;
+  border-radius: 18px;
+  box-shadow: 0 22px 80px rgba(0,0,0,0.65);
+  position:relative;
+  z-index:1;
+}
+
+.loadingBox{
+  width:100%;
+  aspect-ratio: 600 / 1800;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  display:grid;
+  place-items:center;
+  opacity:0.85;
+}
+
+.buttonRowResult{
+  display:flex;
+  gap: 20px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+/* ---------------- MOBILE ---------------- */
+@media (max-width: 900px){
+  .startRow{
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .boothGrid{
+    grid-template-columns: 1fr;
+    justify-items:center;
+  }
+
+  .cameraWrap{
+    width: min(92vw, 760px);
+  }
+
+  .stripPreviewWrap{
+    width: min(54vw, 260px);
+  }
+}
+/* ✅ PREVIEW SLOTS: make sure images fill the white boxes correctly */
+.previewSlot{
+  position: absolute;     /* REQUIRED because you use left/top/width/height */
+  overflow: hidden;       /* crops cleanly inside the window */
+  background: #fff;       /* keeps blank slots white */
+  border-radius: 0px;     /* optional */
+  z-index: 2;             /* under overlay, above background */
+}
+
+.previewSlot img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;      /* ✅ prevents stretching */
+  object-position: center;
+}
+
+.previewSlot.bw img{
+  filter: grayscale(1);
+}
+
+/* overlay stays on top */
+.stripOverlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: contain;
+  z-index: 3;
+  pointer-events:none;
+}
