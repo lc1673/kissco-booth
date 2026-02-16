@@ -333,7 +333,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className={`screen ${step === "start" ? "startBg" : ""}`}>
+      <div className={`screen ${step === "start" ? "startBg startScreen" : ""}`}>
         <audio ref={shutterRef} src="/assets/shutter.mp3" preload="auto" />
 
         {step === "start" && (

@@ -479,3 +479,30 @@ img, video{ display:block; }
     radial-gradient(1100px 800px at 30% 70%, rgba(92,181,232,0.10) 0%, rgba(0,0,0,0) 65%),
     linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
 }
+/* ✅ Mobile: allow START screen to scroll if content is taller than viewport */
+@media (max-width: 700px){
+  .screen.startScreen{
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start; /* stops pushing button off-screen */
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  /* Make start content fit better on phones */
+  .screen.startScreen .startRow{
+    flex: 0 0 auto;
+    margin-top: 8px;
+    gap: 14px;
+  }
+
+  .screen.startScreen .startStrip{
+    width: min(40vw, 170px);   /* shrink strips so button stays visible */
+  }
+
+  .screen.startScreen .tapBtn{
+    width: 180px;
+    height: 180px;
+    margin-bottom: 16px;
+    z-index: 2;
+  }
+}
