@@ -453,7 +453,7 @@ export default function App() {
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap">
+              <div className="stripPreviewWrap" style={{ overflow: "hidden" }}>
                 <div className="stripGlow" />
 
                 <div className="stripPreview">
@@ -495,7 +495,7 @@ export default function App() {
         {step === "result" && (
           <>
             <div className="center">
-              <div className="titleSmall">YOUR STRIP</div>
+              <div className="titleSmall">YOU LOOK SO GOOD!</div>
             </div>
 
             <div className="resultWrap">
