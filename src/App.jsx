@@ -17,7 +17,7 @@ const OVERLAYS = {
 const BASE_STRIP_W = 600;
 const BASE_STRIP_H = 1800;
 
-// Inner photo windows
+// Inner photo windows (in BASE coords)
 const SLOTS_PX = {
   4: [
     { x: 60, y: 50, w: 480, h: 385 },
@@ -36,6 +36,12 @@ const SLOTS_PX = {
 const FINAL_BLEED_BY_FRAME = {
   3: { x: 4, y: 6 },
   4: { x: 10, y: 12 },
+};
+
+// Booth preview bleed (slightly smaller than final, tweak as needed)
+const PREVIEW_BLEED_BY_FRAME = {
+  3: { x: 2, y: 3 },
+  4: { x: 6, y: 8 },
 };
 
 const COUNTDOWN_SECONDS = 5;
@@ -102,6 +108,7 @@ async function loadImage(src) {
 // Convert PX rects (600x1800 system) to % for responsive DOM preview positioning
 function slotPxToDomStyle(r) {
   return {
+    position: "absolute",
     left: `${(r.x / BASE_STRIP_W) * 100}%`,
     top: `${(r.y / BASE_STRIP_H) * 100}%`,
     width: `${(r.w / BASE_STRIP_W) * 100}%`,
@@ -115,6 +122,8 @@ export default function App() {
   const [frame, setFrame] = useState(4); // 3 | 4
 
   const overlaySet = OVERLAYS[frame];
+  const previewSrc = overlaySet?.preview || overlaySet?.final;
+
   const slotsPx = useMemo(() => SLOTS_PX[frame], [frame]);
 
   const videoRef = useRef(null);
@@ -268,14 +277,14 @@ export default function App() {
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         try {
-       if (shutterRef.current) {
-       shutterRef.current.currentTime = 0;
-       await shutterRef.current.play();
-       }
-      } catch {}
+          if (shutterRef.current) {
+            shutterRef.current.currentTime = 0;
+            await shutterRef.current.play();
+          }
+        } catch {}
 
-      await sleep(220);
-      setFlashOn(false);
+        await sleep(220);
+        setFlashOn(false);
 
         const dataUrl = await captureFrameFromVideo();
         collected.push(dataUrl);
@@ -296,33 +305,33 @@ export default function App() {
   }
 
   async function downloadStrip() {
-  if (!finalUrl) return;
+    if (!finalUrl) return;
 
-  const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
+    const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
 
-  try {
-    const res = await fetch(finalUrl);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    try {
+      const res = await fetch(finalUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
 
-    // ✅ iOS Safari often ignores download attr — open in new tab fallback
-    setTimeout(() => {
-      try { window.open(url, "_blank"); } catch {}
-      URL.revokeObjectURL(url);
-    }, 200);
-  } catch (e) {
-    console.error(e);
-    // fallback: open the image directly
-    window.open(finalUrl, "_blank");
+      setTimeout(() => {
+        try {
+          window.open(url, "_blank");
+        } catch {}
+        URL.revokeObjectURL(url);
+      }, 200);
+    } catch (e) {
+      console.error(e);
+      window.open(finalUrl, "_blank");
+    }
   }
-}
 
   async function shareStrip() {
     if (!finalUrl) return;
@@ -372,7 +381,7 @@ export default function App() {
                     </textPath>
                   </text>
                 </svg>
-                <div className="tapCenter"></div>
+                <div className="tapCenter" />
               </button>
             </div>
 
@@ -424,10 +433,14 @@ export default function App() {
               ))}
             </div>
 
-             <div className="frameButtonRow">
-            <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
-            <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
-          </div>
+            <div className="frameButtonRow">
+              <button className="secondaryBtn" onClick={() => setStep("filter")}>
+                BACK
+              </button>
+              <button className="primaryBtn" onClick={() => setStep("booth")}>
+                START
+              </button>
+            </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
           </>
@@ -441,68 +454,70 @@ export default function App() {
             </div>
 
             <div className="boothGrid">
+              {/* CAMERA */}
               <div className="cameraWrap">
-              <video
-                className={`video ${mode === "bw" ? "bw" : ""}`}
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-              />
+                <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap" style={{ overflow: "hidden" }}>
+              {/* STRIP PREVIEW */}
+              <div className="stripPreviewWrap">
                 <div className="stripGlow" />
 
-                <div className="stripPreview">
-                  {/* White placeholders */}
+                <div className="stripPreview" style={{ position: "relative" }}>
+                  {/* slots */}
                   {slotsPx.map((r0, idx) => {
-                  const src = shots[idx];
-                  const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
-                  const r = expandRect(r0, previewBleed);
-                  const domStyle = slotPxToDomStyle(r);
+                    const src = shots[idx];
+                    const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
+                    const r = expandRect(r0, previewBleed);
 
-                  return (
-                    <div
-                      key={idx}
-                      className="previewSlot"
-                      style={{
-                        ...domStyle,
-                        position: "absolute",
-                        overflow: "hidden",
-                        zIndex: 2,
-                        borderRadius: 0,
-                        background: "#fff",   // ✅ placeholder lives here now
-                      }}
-                    >
-                      {src ? (
-                        <img
-                          className="previewImg"
-                          src={src}
-                          alt={`shot ${idx + 1}`}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div
+                        key={idx}
+                        className="previewSlot"
+                        style={{
+                          ...slotPxToDomStyle(r),
+                          overflow: "hidden",
+                        }}
+                      >
+                        {src ? (
+                          <img
+                            className="previewImg"
+                            src={src}
+                            alt={`shot ${idx + 1}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
 
-                  {/* Photos */}
-                  {slotsPx.map((r0, idx) => (
-                    <div key={`shot-${idx}`} className="previewSlot" style={{ ...slotPxToDomStyle(r0) }}>
-                      {shots[idx] ? <img src={shots[idx]} alt={`shot ${idx + 1}`} /> : null}
-                    </div>
-                  ))}
-
-                  {/* Overlay */}
-                  <img className="stripOverlay" src={overlaySet.final} alt="preview strip overlay" />
+                  {/* overlay on top */}
+                  <img
+                    className="stripOverlay"
+                    src={previewSrc}
+                    alt="preview strip overlay"
+                    draggable={false}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    }}
+                    onError={(e) => {
+                      // fallback in case preview is missing
+                      e.currentTarget.src = overlaySet.final;
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -527,11 +542,7 @@ export default function App() {
             </div>
 
             <div className="resultWrap">
-              {finalUrl ? (
-                <img className="finalStrip" src={finalUrl} alt="final strip" />
-              ) : (
-                <div className="loadingBox">BUILDING…</div>
-              )}
+              {finalUrl ? <img className="finalStrip" src={finalUrl} alt="final strip" /> : <div className="loadingBox">BUILDING…</div>}
             </div>
 
             <div className="buttonRowResult">
