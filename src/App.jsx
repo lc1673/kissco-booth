@@ -364,7 +364,7 @@ export default function App() {
                     </textPath>
                   </text>
                 </svg>
-                <div className="tapCenter"></div>
+                <div className=""></div>
               </button>
             </div>
 
