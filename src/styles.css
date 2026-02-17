@@ -667,3 +667,122 @@ img, video{ display:block; }
     padding-bottom: 14px;
   }
 }
+
+/* =========================
+   GLOBAL: kill “white page” bleed on iOS Safari
+========================= */
+html, body{
+  background: #05060a;          /* hard fallback */
+}
+
+img, video{
+  display: block;               /* removes inline gaps */
+  background: transparent;
+}
+
+/* =========================
+   MOBILE CONSTRAINT MODE
+   (works across all phones)
+========================= */
+@media (max-width: 900px){
+
+  /* Make screen act like a fixed app canvas */
+  .screen{
+    padding: 14px 12px;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  /* Reduce header text so it doesn't eat vertical space */
+  .titleSmall{
+    font-size: clamp(18px, 5vw, 24px);
+    letter-spacing: 0.08em;
+  }
+  .subSmall{
+    font-size: 11px;
+    letter-spacing: 0.16em;
+  }
+
+  /* ---------- START: no extra space + big button ---------- */
+  .startRow{
+    flex: 1;
+    width: 100%;
+    gap: 14px;
+    justify-content: center;
+  }
+
+  .startStrips{
+    gap: 10px;
+  }
+
+  .startStrip{
+    width: 42vw;
+    max-width: 190px;
+  }
+
+  .tapBtn{
+    width: clamp(170px, 46vw, 210px);
+    height: clamp(170px, 46vw, 210px);
+  }
+
+  /* ---------- FRAME PICKER: force side-by-side ---------- */
+  .frameChoices{
+    width: 100%;
+    max-width: 520px;
+    gap: 12px;
+    flex-wrap: nowrap; /* never stack */
+  }
+  .frameCard{
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+  }
+
+  /* ---------- BOOTH: ensure camera + strip + buttons fit ---------- */
+  .boothHeader{
+    flex: 0 0 auto;
+    margin-top: 4px;
+  }
+
+  .boothGrid{
+    flex: 1 1 auto;
+    width: 100%;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* Key: camera gets a MAX HEIGHT so it can't push buttons offscreen */
+  .cameraWrap{
+    width: 92vw;
+    max-width: 760px;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    max-height: 38dvh;          /* ✅ constrains vertical */
+  }
+
+  /* Strip smaller on mobile so it doesn't dominate */
+  .stripPreview{
+    width: min(54vw, 240px);    /* ✅ smaller */
+    max-height: 32dvh;          /* ✅ constrains vertical */
+  }
+
+  /* Make buttons always tappable and not tiny */
+  .buttonRowResult{
+    flex: 0 0 auto;
+    width: 100%;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .primaryBtn, .secondaryBtn{
+    min-height: 48px;           /* Apple tap target */
+    padding: 14px 18px;
+  }
+}
+
+/* Extra safety for short phones (SE, small Androids) */
+@media (max-height: 720px){
+  .cameraWrap{ max-height: 34dvh; }
+  .stripPreview{ max-height: 28dvh; }
+  .tapBtn{ width: 170px; height: 170px; }
+}
