@@ -746,3 +746,34 @@ body{
     padding-bottom: calc(240px + env(safe-area-inset-bottom)) !important;
   }
 }
+/* ===== MOBILE WATERMARK (always visible) ===== */
+@media (max-width: 900px){
+
+  /* override any earlier "hide credit" rules */
+  .credit{
+    display: block !important;
+    position: fixed !important;
+    left: 50%;
+    transform: translateX(-50%) !important;
+
+    /* sits above Safari bottom UI */
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+
+    margin: 0 !important;
+    padding: 8px 12px !important;
+
+    font-size: 10px !important;
+    letter-spacing: 0.14em !important;
+    opacity: 0.75 !important;
+    white-space: nowrap !important;
+
+    z-index: 9998 !important;
+    pointer-events: none !important;
+
+    /* subtle “watermark chip” so it’s readable */
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+  }
+}
