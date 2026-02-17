@@ -424,7 +424,7 @@ body{
 /* ========== MOBILE: keep everything reachable (no layout wreck) ========== */
 @media (max-width: 900px){
   body{ overflow-y:hidden; }
-  .app{ padding: 14px; }
+  .app{ padding: 10px; }
   .screen{
     width: 100%;
     min-height: 100dvh;
