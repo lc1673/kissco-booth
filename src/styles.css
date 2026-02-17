@@ -489,3 +489,40 @@ body{
     padding-bottom: calc(140px + env(safe-area-inset-bottom));
   }
 }
+/* ===== Mobile: buttons must ALWAYS be reachable ===== */
+@media (max-width: 900px){
+
+  /* Stop vertical centering from pushing buttons down */
+  .screen{
+    justify-content: flex-start !important;
+    padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Fixed bottom bar ABOVE Safari nav */
+  .frameButtonRow{
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    z-index: 9999;
+
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.45);
+  }
+
+  .frameButtonRow .secondaryBtn,
+  .frameButtonRow .primaryBtn{
+    flex: 1;
+    max-width: 240px;
+    min-height: 54px;          /* big tap target */
+  }
+
+  /* Credit can overlap bottom bar—hide on mobile */
+  .credit{ display:none !important; }
+}

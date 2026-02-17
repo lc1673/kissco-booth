@@ -403,14 +403,10 @@ export default function App() {
               ))}
             </div>
 
-            <div className="frameButtonRow">
-              <button className="secondaryBtn" onClick={() => setStep("filter")}>
-                BACK
-              </button>
-              <button className="primaryBtn" onClick={() => setStep("booth")}>
-                START
-              </button>
-            </div>
+             <div className="frameButtonRow">
+            <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
+            <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
+          </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
           </>
