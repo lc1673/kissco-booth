@@ -458,13 +458,41 @@ export default function App() {
 
                 <div className="stripPreview">
                   {/* White placeholders */}
-                  {slotsPx.map((r0, idx) => (
+                  {slotsPx.map((r0, idx) => {
+                  const src = shots[idx];
+                  const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
+                  const r = expandRect(r0, previewBleed);
+                  const domStyle = slotPxToDomStyle(r);
+
+                  return (
                     <div
-                      key={`pholder-${idx}`}
-                      className="placeholder"
-                      style={{ ...slotPxToDomStyle(r0) }}
-                    />
-                  ))}
+                      key={idx}
+                      className="previewSlot"
+                      style={{
+                        ...domStyle,
+                        position: "absolute",
+                        overflow: "hidden",
+                        zIndex: 2,
+                        borderRadius: 0,
+                        background: "#fff",   // ✅ placeholder lives here now
+                      }}
+                    >
+                      {src ? (
+                        <img
+                          className="previewImg"
+                          src={src}
+                          alt={`shot ${idx + 1}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
 
                   {/* Photos */}
                   {slotsPx.map((r0, idx) => (
