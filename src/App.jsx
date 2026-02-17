@@ -4,20 +4,18 @@ const OVERLAYS = {
   3: {
     startSample: "/overlays/sample-kissco-3.png",
     preview: "/overlays/kissco-preview-3.png",
-    final: "/overlays/kissco-3.png",
+    final: "/overlays/kissco-3.png", // ✅ transparent windows
   },
   4: {
     startSample: "/overlays/sample-kissco-4.png",
     preview: "/overlays/kissco-preview-4.png",
-    final: "/overlays/kissco-4.png",
+    final: "/overlays/kissco-4.png", // ✅ transparent windows
   },
 };
 
-// Slots defined in a 600x1800 coordinate system
 const BASE_STRIP_W = 600;
 const BASE_STRIP_H = 1800;
 
-// Inner photo windows (in BASE coords)
 const SLOTS_PX = {
   4: [
     { x: 60, y: 50, w: 480, h: 385 },
@@ -32,16 +30,9 @@ const SLOTS_PX = {
   ],
 };
 
-// Final bleed (export)
 const FINAL_BLEED_BY_FRAME = {
   3: { x: 4, y: 6 },
   4: { x: 10, y: 12 },
-};
-
-// Booth preview bleed (slightly smaller than final, tweak as needed)
-const PREVIEW_BLEED_BY_FRAME = {
-  3: { x: 2, y: 3 },
-  4: { x: 6, y: 8 },
 };
 
 const COUNTDOWN_SECONDS = 5;
@@ -71,7 +62,7 @@ function expandRect(r, bleed) {
   };
 }
 
-// cover-crop drawing (like CSS object-fit: cover)
+// cover-crop draw (like object-fit: cover)
 function drawCover(ctx, img, dx, dy, dw, dh) {
   const iw = img.width;
   const ih = img.height;
@@ -105,7 +96,7 @@ async function loadImage(src) {
   });
 }
 
-// Convert PX rects (600x1800 system) to % for responsive DOM preview positioning
+// Convert base 600x1800 rect to responsive DOM %
 function slotPxToDomStyle(r) {
   return {
     position: "absolute",
@@ -117,14 +108,11 @@ function slotPxToDomStyle(r) {
 }
 
 export default function App() {
-  const boothOverlaySrc = overlaySet?.final; // transparent windows
   const [step, setStep] = useState("start"); // start | filter | frame | booth | result
   const [mode, setMode] = useState(null); // "color" | "bw"
   const [frame, setFrame] = useState(4); // 3 | 4
 
   const overlaySet = OVERLAYS[frame];
-  const previewSrc = overlaySet?.preview || overlaySet?.final;
-
   const slotsPx = useMemo(() => SLOTS_PX[frame], [frame]);
 
   const videoRef = useRef(null);
@@ -137,7 +125,10 @@ export default function App() {
   const [shots, setShots] = useState([]); // dataURLs
   const [finalUrl, setFinalUrl] = useState("");
 
-  // Start camera only in booth
+  // ✅ Frame picker can use preview image; Booth MUST use final image
+  const framePickerSrc = overlaySet?.preview || overlaySet?.final;
+  const boothOverlaySrc = overlaySet?.final; // ✅ the transparent-window strip
+
   useEffect(() => {
     if (step !== "booth") return;
 
@@ -149,7 +140,6 @@ export default function App() {
           video: { facingMode: "user" },
           audio: false,
         });
-
         if (cancelled) return;
 
         setStream(s);
@@ -165,13 +155,11 @@ export default function App() {
     }
 
     startCam();
-
     return () => {
       cancelled = true;
     };
   }, [step]);
 
-  // Stop stream when leaving booth
   useEffect(() => {
     if (step !== "booth" && stream) {
       stream.getTracks().forEach((t) => t.stop());
@@ -206,7 +194,7 @@ export default function App() {
     c.height = outH;
     const ctx = c.getContext("2d");
 
-    // Mirror selfie
+    // mirror
     ctx.save();
     ctx.translate(outW, 0);
     ctx.scale(-1, 1);
@@ -227,7 +215,6 @@ export default function App() {
   }
 
   async function buildFinalStrip(photos) {
-    // Load overlay FIRST so canvas matches overlay’s REAL pixel size
     const overlayImg = await loadImage(overlaySet.final);
     const W = overlayImg.naturalWidth || overlayImg.width;
     const H = overlayImg.naturalHeight || overlayImg.height;
@@ -241,11 +228,10 @@ export default function App() {
     const ctx = canvas.getContext("2d");
 
     const imgs = await Promise.all(photos.map((src) => loadImage(src)));
-
     ctx.clearRect(0, 0, W, H);
 
-    // Photos under overlay
     const bleed = FINAL_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
+
     imgs.forEach((im, i) => {
       const r0 = slotsPx[i];
       if (!r0) return;
@@ -253,7 +239,6 @@ export default function App() {
       drawCover(ctx, im, r.x * sx, r.y * sy, r.w * sx, r.h * sy);
     });
 
-    // Overlay on top
     ctx.drawImage(overlayImg, 0, 0, W, H);
 
     return canvas.toDataURL("image/png");
@@ -274,7 +259,6 @@ export default function App() {
         setCountdown(null);
 
         setFlashOn(true);
-
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         try {
@@ -290,7 +274,7 @@ export default function App() {
         const dataUrl = await captureFrameFromVideo();
         collected.push(dataUrl);
 
-        // preview updates as you capture
+        // ✅ update preview immediately
         setShots([...collected]);
 
         if (i < frame - 1) await sleep(900);
@@ -323,9 +307,7 @@ export default function App() {
       a.remove();
 
       setTimeout(() => {
-        try {
-          window.open(url, "_blank");
-        } catch {}
+        try { window.open(url, "_blank"); } catch {}
         URL.revokeObjectURL(url);
       }, 200);
     } catch (e) {
@@ -382,11 +364,11 @@ export default function App() {
                     </textPath>
                   </text>
                 </svg>
-                <div className="tapCenter" />
+                <div className="tapCenter"></div>
               </button>
             </div>
 
-            <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
+            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
           </>
         )}
 
@@ -410,7 +392,7 @@ export default function App() {
               NEXT
             </button>
 
-            <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
+            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
           </>
         )}
 
@@ -423,27 +405,18 @@ export default function App() {
             <div className="frameChoices">
               {[3, 4].map((n) => (
                 <div key={n} className={`frameCard ${frame === n ? "selected" : ""}`} onClick={() => setFrame(n)}>
-                  <img
-                    className="frameImg"
-                    src={OVERLAYS[n].preview || OVERLAYS[n].final}
-                    alt={`frame ${n}`}
-                    onError={(e) => (e.currentTarget.src = OVERLAYS[n].final)}
-                  />
+                  <img className="frameImg" src={OVERLAYS[n].preview || OVERLAYS[n].final} alt={`frame ${n}`} />
                   <div className="frameLabel">{n} STRIP</div>
                 </div>
               ))}
             </div>
 
             <div className="frameButtonRow">
-              <button className="secondaryBtn" onClick={() => setStep("filter")}>
-                BACK
-              </button>
-              <button className="primaryBtn" onClick={() => setStep("booth")}>
-                START
-              </button>
+              <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
+              <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
             </div>
 
-            <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
+            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
           </>
         )}
 
@@ -455,84 +428,47 @@ export default function App() {
             </div>
 
             <div className="boothGrid">
-              {/* CAMERA */}
               <div className="cameraWrap">
                 <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              {/* STRIP PREVIEW */}
               <div className="stripPreviewWrap">
                 <div className="stripGlow" />
 
-                <div className="stripPreview" style={{ position: "relative" }}>
-                  {/* slots */}
+                <div className="stripPreview">
+                  {/* ✅ White boxes exist via CSS; when shot exists, image appears */}
                   {slotsPx.map((r0, idx) => {
                     const src = shots[idx];
-                    const previewBleed = PREVIEW_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
-                    const r = expandRect(r0, previewBleed);
-
                     return (
                       <div
                         key={idx}
-                        className="previewSlot"
-                        style={{
-                          ...slotPxToDomStyle(r),
-                          overflow: "hidden",
-                        }}
+                        className={`previewSlot ${src ? "filled" : ""}`}
+                        style={slotPxToDomStyle(r0)}
                       >
-                        {src ? (
-                          <img
-                            className="previewImg"
-                            src={src}
-                            alt={`shot ${idx + 1}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              display: "block",
-                            }}
-                          />
-                        ) : null}
+                        {src ? <img className="previewImg" src={src} alt={`shot ${idx + 1}`} /> : null}
                       </div>
                     );
                   })}
 
-                  {/* overlay on top */}
+                  {/* ✅ Booth uses FINAL overlay (transparent windows) */}
                   <img
                     className="stripOverlay"
                     src={boothOverlaySrc}
-                    alt="preview strip overlay"
+                    alt="booth strip overlay"
                     draggable={false}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      pointerEvents: "none",
-                      userSelect: "none",
-                    }}
-                    onError={(e) => {
-                      // fallback in case preview is missing
-                      e.currentTarget.src = overlaySet.final;
-                    }}
                   />
                 </div>
               </div>
             </div>
 
             <div className="buttonRowResult">
-              <button className="secondaryBtn" onClick={() => setStep("frame")}>
-                BACK
-              </button>
-              <button className="primaryBtn" onClick={takePhotos}>
-                TAKE PHOTOS
-              </button>
+              <button className="secondaryBtn" onClick={() => setStep("frame")}>BACK</button>
+              <button className="primaryBtn" onClick={takePhotos}>TAKE PHOTOS</button>
             </div>
 
-            <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
+            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
           </>
         )}
 
@@ -547,18 +483,12 @@ export default function App() {
             </div>
 
             <div className="buttonRowResult">
-              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>
-                DOWNLOAD
-              </button>
-              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>
-                SHARE
-              </button>
-              <button className="secondaryBtn" onClick={resetAll}>
-                START OVER
-              </button>
+              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>DOWNLOAD</button>
+              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>SHARE</button>
+              <button className="secondaryBtn" onClick={resetAll}>START OVER</button>
             </div>
 
-            <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
+            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
           </>
         )}
       </div>

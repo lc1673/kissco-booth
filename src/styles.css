@@ -31,7 +31,6 @@ body{
   width: 1100px;
   min-height: 720px;
   position:relative;
-
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -56,14 +55,11 @@ body{
 }
 
 .credit{
-  position: static;
-  transform: none;
   margin-top: 14px;
   font-size: 12px;
   opacity: 0.7;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  white-space: nowrap;
   text-align: center;
 }
 
@@ -340,23 +336,23 @@ body{
   pointer-events:none;
 }
 
-/* ✅ Give the preview a real size so the absolute slots behave consistently */
+/* strict 600:1800 box */
 .stripPreview{
   position: relative;
-  width: 320px;              /* desktop target width */
-  aspect-ratio: 600 / 1800;  /* must match your BASE coords */
+  width: 320px;
+  aspect-ratio: 600 / 1800;
   overflow: hidden;
   background: rgba(0,0,0,0.15);
   z-index: 1;
+  isolation: isolate;
 }
 
-/* photo slots */
+/* ✅ WHITE PLACEHOLDER BOXES (turn into photos when filled) */
 .previewSlot{
   position: absolute;
   overflow: hidden;
-  background: #fff;          /* placeholder */
-  border-radius: 0;
-  z-index: 2;
+  background: #fff;
+  z-index: 10;
 }
 
 .previewSlot.filled{
@@ -371,14 +367,14 @@ body{
   object-position: center;
 }
 
-/* ✅ Overlay must not crop; it must align with the 600x1800 coordinate system */
+/* overlay on top */
 .stripOverlay{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;        /* ✅ IMPORTANT: do not crop the overlay */
-  z-index: 5;
+  object-fit: contain;
+  z-index: 20;
   pointer-events: none;
   user-select: none;
 }
@@ -424,26 +420,18 @@ body{
 
   .screen{
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     justify-content: flex-start;
-    padding-bottom: calc(160px + env(safe-area-inset-bottom));
+    padding-bottom: calc(190px + env(safe-area-inset-bottom));
   }
 
-  /* Start */
-  .startRow{
-    flex-direction:column;
-    gap: 16px;
-  }
-  .tapBtn{
-    width: 210px;
-    height: 210px;
+  .titleSmall{
+    font-size: 24px;
+    letter-spacing: 0.08em;
   }
 
-  /* Frame cards */
-  .frameChoices{ flex-wrap: nowrap; }
-  .frameCard{ width: 46vw; }
-
-  /* Booth layout */
   .boothHeader{
     position: static;
     transform:none;
@@ -452,26 +440,42 @@ body{
 
   .boothGrid{
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .cameraWrap{
     width: min(92vw, 760px);
-    max-height: 38vh;
+    max-height: 36vh;
   }
 
+  /* size strip by height so it stays proportional */
   .stripPreview{
-    width: min(56vw, 240px);
-    max-height: 30vh;
+    height: min(30vh, 320px);
+    width: auto;
   }
 
-  /* Fixed bottom buttons (for frame + booth + result) */
+  /* final strip smaller so buttons sit higher */
+  .finalStrip{
+    max-height: 56vh;
+    max-width: 92vw;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .buttonRowResult{
+    margin-top: 10px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  /* fixed bottom buttons (frame screen) */
   .frameButtonRow{
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    padding: 12px 12px calc(18px + env(safe-area-inset-bottom));
     z-index: 9999;
 
     display: flex;
@@ -492,140 +496,30 @@ body{
 
   .credit{ display:none; }
 
-  /* Result */
-  .finalStrip{
-    max-height: 68vh;
-    max-width: 92vw;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    display: block;
-  }
-}
-/* ================= iPHONE / MOBILE LAYOUT FIXES ================= */
-
-/* Let the app scroll on small screens (body stays locked) */
-@media (max-width: 900px){
-  .screen{
-    height: 100dvh;
-    overflow-y: auto;                 /* ✅ allow vertical scroll */
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    padding-bottom: calc(190px + env(safe-area-inset-bottom)); /* space for bottom bar */
-  }
-
-  /* Headings slightly smaller so they don’t steal the viewport */
-  .titleSmall{
-    font-size: 24px;
-    letter-spacing: 0.08em;
-  }
-}
-
-/* FRAME SCREEN: keep two cards from becoming insanely tall */
-@media (max-width: 900px){
+  /* Frame cards behave nicely */
   .frameChoices{
-    flex-wrap: wrap;                   /* ✅ allow wrap if needed */
+    flex-wrap: wrap;
     gap: 12px;
   }
 
-  /* Each card becomes a "viewport-aware" height box */
   .frameCard{
     width: min(46vw, 240px);
-    height: min(52vh, 520px);         /* ✅ cap height so buttons fit */
+    height: min(52vh, 520px);
     display: flex;
     flex-direction: column;
   }
 
-  /* Make the strip image fit inside that height */
   .frameImg{
     flex: 1;
     width: 100%;
     height: 100%;
-    object-fit: contain;              /* ✅ don’t crop preview frames */
-    border-radius: 12px;
-  }
-
-  .frameLabel{
-    flex: 0 0 auto;
-    padding-bottom: 4px;
+    object-fit: contain;
   }
 }
 
-/* Extra-small phones: stack cards vertically (fixes cramped layout) */
 @media (max-width: 430px){
   .frameCard{
     width: min(88vw, 360px);
     height: min(48vh, 440px);
-  }
-}
-
-/* Bottom buttons: ensure they sit ABOVE Safari UI */
-@media (max-width: 900px){
-  .frameButtonRow{
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 12px 12px calc(18px + env(safe-area-inset-bottom)); /* ✅ more safe-area */
-    z-index: 9999;
-  }
-}
-/* ===== Desktop: ensure photos render ABOVE the white placeholders and BELOW overlay ===== */
-.previewSlot{
-  z-index: 10 !important;
-  background: transparent !important; /* so filled slots don't look like white blocks */
-}
-
-.previewImg{
-  z-index: 11 !important;
-  position: relative;
-}
-
-/* overlay on top, but not hiding photos due to weird stacking */
-.stripOverlay{
-  z-index: 20 !important;
-  pointer-events: none !important;
-}
-
-/* make sure the strip container creates a predictable stacking context */
-.stripPreview{
-  position: relative;
-  isolation: isolate; /* ✅ prevents z-index weirdness */
-}
-/* ===== Mobile booth: make camera + strip fit without weird stretching ===== */
-@media (max-width: 900px){
-  .boothGrid{
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-
-  .cameraWrap{
-    width: min(92vw, 760px) !important;
-    aspect-ratio: 16 / 9 !important;
-    max-height: 36vh !important;
-  }
-
-  /* Set strip by HEIGHT on mobile so aspect-ratio stays correct */
-  .stripPreview{
-    height: min(30vh, 320px) !important;
-    width: auto !important;                 /* let aspect-ratio compute width */
-    aspect-ratio: 600 / 1800 !important;
-    overflow: hidden !important;
-  }
-
-  .stripPreviewWrap{
-    justify-content: center !important;
-  }
-}
-/* ===== Mobile result: smaller strip so buttons have breathing room ===== */
-@media (max-width: 900px){
-  .finalStrip{
-    max-height: 56vh !important;   /* smaller than before */
-    max-width: 92vw !important;
-  }
-
-  .buttonRowResult{
-    margin-top: 10px !important;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
   }
 }
