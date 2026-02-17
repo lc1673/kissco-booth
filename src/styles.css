@@ -570,3 +570,62 @@ body{
     z-index: 9999;
   }
 }
+/* ===== Desktop: ensure photos render ABOVE the white placeholders and BELOW overlay ===== */
+.previewSlot{
+  z-index: 10 !important;
+  background: transparent !important; /* so filled slots don't look like white blocks */
+}
+
+.previewImg{
+  z-index: 11 !important;
+  position: relative;
+}
+
+/* overlay on top, but not hiding photos due to weird stacking */
+.stripOverlay{
+  z-index: 20 !important;
+  pointer-events: none !important;
+}
+
+/* make sure the strip container creates a predictable stacking context */
+.stripPreview{
+  position: relative;
+  isolation: isolate; /* ✅ prevents z-index weirdness */
+}
+/* ===== Mobile booth: make camera + strip fit without weird stretching ===== */
+@media (max-width: 900px){
+  .boothGrid{
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .cameraWrap{
+    width: min(92vw, 760px) !important;
+    aspect-ratio: 16 / 9 !important;
+    max-height: 36vh !important;
+  }
+
+  /* Set strip by HEIGHT on mobile so aspect-ratio stays correct */
+  .stripPreview{
+    height: min(30vh, 320px) !important;
+    width: auto !important;                 /* let aspect-ratio compute width */
+    aspect-ratio: 600 / 1800 !important;
+    overflow: hidden !important;
+  }
+
+  .stripPreviewWrap{
+    justify-content: center !important;
+  }
+}
+/* ===== Mobile result: smaller strip so buttons have breathing room ===== */
+@media (max-width: 900px){
+  .finalStrip{
+    max-height: 56vh !important;   /* smaller than before */
+    max-width: 92vw !important;
+  }
+
+  .buttonRowResult{
+    margin-top: 10px !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  }
+}

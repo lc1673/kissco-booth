@@ -117,6 +117,7 @@ function slotPxToDomStyle(r) {
 }
 
 export default function App() {
+  const boothOverlaySrc = overlaySet?.final; // transparent windows
   const [step, setStep] = useState("start"); // start | filter | frame | booth | result
   const [mode, setMode] = useState(null); // "color" | "bw"
   const [frame, setFrame] = useState(4); // 3 | 4
@@ -501,7 +502,7 @@ export default function App() {
                   {/* overlay on top */}
                   <img
                     className="stripOverlay"
-                    src={previewSrc}
+                    src={boothOverlaySrc}
                     alt="preview strip overlay"
                     draggable={false}
                     style={{
