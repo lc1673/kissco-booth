@@ -3,13 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 const OVERLAYS = {
   3: {
     startSample: "/overlays/sample-kissco-3.png",
-    preview: "/overlays/kissco-preview-3.png", // booth preview overlay
-    final: "/overlays/kissco-3.png", // export overlay
+    preview: "/overlays/kissco-preview-3.png",
+    final: "/overlays/kissco-3.png", // MUST have transparent cutouts
   },
   4: {
     startSample: "/overlays/sample-kissco-4.png",
     preview: "/overlays/kissco-preview-4.png",
-    final: "/overlays/kissco-4.png",
+    final: "/overlays/kissco-4.png", // MUST have transparent cutouts
   },
 };
 
@@ -36,15 +36,6 @@ const FINAL_BLEED_BY_FRAME = {
 };
 
 const COUNTDOWN_SECONDS = 5;
-
-function expandRect(r, bleed) {
-  return {
-    x: r.x - bleed.x,
-    y: r.y - bleed.y,
-    w: r.w + bleed.x * 2,
-    h: r.h + bleed.y * 2,
-  };
-}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -85,6 +76,15 @@ function drawCover(ctx, img, dx, dy, dw, dh) {
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
+function expandRect(r, bleed) {
+  return {
+    x: r.x - bleed.x,
+    y: r.y - bleed.y,
+    w: r.w + bleed.x * 2,
+    h: r.h + bleed.y * 2,
+  };
+}
+
 async function loadImage(src) {
   return new Promise((res, rej) => {
     const im = new Image();
@@ -95,23 +95,14 @@ async function loadImage(src) {
   });
 }
 
-function isIOSDevice() {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const iOS = /iPad|iPhone|iPod/.test(ua);
-  const iPadOS13Plus =
-    ua.includes("Macintosh") && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1;
-  return iOS || iPadOS13Plus;
-}
-
-function dataUrlToBlob(dataUrl) {
-  const [meta, data] = dataUrl.split(",");
-  const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/png";
-  const bin = atob(data);
-  const len = bin.length;
-  const arr = new Uint8Array(len);
-  for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
-  return new Blob([arr], { type: mime });
+// Convert PX rects (600x1800) to % for DOM preview positioning
+function slotPxToDomStyle(r) {
+  return {
+    left: `${(r.x / BASE_STRIP_W) * 100}%`,
+    top: `${(r.y / BASE_STRIP_H) * 100}%`,
+    width: `${(r.w / BASE_STRIP_W) * 100}%`,
+    height: `${(r.h / BASE_STRIP_H) * 100}%`,
+  };
 }
 
 export default function App() {
@@ -132,18 +123,7 @@ export default function App() {
   const [shots, setShots] = useState([]); // dataURLs
   const [finalUrl, setFinalUrl] = useState("");
 
-  const [isMobile, setIsMobile] = useState(false);
-
-  // responsive flag
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 860px)");
-    const set = () => setIsMobile(mq.matches);
-    set();
-    mq.addEventListener?.("change", set);
-    return () => mq.removeEventListener?.("change", set);
-  }, []);
-
-  // Preload overlays so they don't "pop in"
+  // Preload key images to reduce “missing” flashes
   useEffect(() => {
     const urls = [
       OVERLAYS[3].startSample,
@@ -168,11 +148,7 @@ export default function App() {
     async function startCam() {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "user",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          video: { facingMode: "user" },
           audio: false,
         });
 
@@ -182,6 +158,7 @@ export default function App() {
 
         if (videoRef.current) {
           videoRef.current.srcObject = s;
+          // IMPORTANT for iOS: play() after setting srcObject
           await videoRef.current.play();
         }
       } catch (e) {
@@ -224,7 +201,7 @@ export default function App() {
     const vw = v.videoWidth || 1280;
     const vh = v.videoHeight || 720;
 
-    // higher-res capture
+    // Good quality but not enormous
     const outW = 1600;
     const outH = Math.round((outW * vh) / vw);
 
@@ -255,6 +232,7 @@ export default function App() {
   }
 
   async function buildFinalStrip(photos) {
+    // Canvas matches overlay's real pixel size
     const overlayImg = await loadImage(overlaySet.final);
     const W = overlayImg.naturalWidth || overlayImg.width;
     const H = overlayImg.naturalHeight || overlayImg.height;
@@ -272,6 +250,7 @@ export default function App() {
     ctx.clearRect(0, 0, W, H);
 
     const bleed = FINAL_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
+
     imgs.forEach((im, i) => {
       const r0 = slotsPx[i];
       if (!r0) return;
@@ -280,7 +259,6 @@ export default function App() {
     });
 
     ctx.drawImage(overlayImg, 0, 0, W, H);
-
     return canvas.toDataURL("image/png");
   }
 
@@ -292,12 +270,14 @@ export default function App() {
       const collected = [];
 
       for (let i = 0; i < frame; i++) {
+        // ✅ True 5-second countdown
         for (let n = COUNTDOWN_SECONDS; n >= 1; n--) {
           setCountdown(n);
           await sleep(1000);
         }
         setCountdown(null);
 
+        // Flash + shutter
         setFlashOn(true);
         try {
           if (shutterRef.current) {
@@ -319,53 +299,24 @@ export default function App() {
       setFinalUrl(built);
       setStep("result");
     } catch (e) {
-      console.error("FINAL STRIP ERROR:", e);
+      console.error("BUILD STRIP ERROR:", e);
       alert("Something went wrong while building the strip.");
     }
   }
 
-  async function downloadStrip() {
+  function downloadStrip() {
     if (!finalUrl) return;
-
-    // iOS Safari hates "download" on data URLs; use Blob + objectURL + fallback
-    try {
-      const blob = finalUrl.startsWith("data:")
-        ? dataUrlToBlob(finalUrl)
-        : await (await fetch(finalUrl)).blob();
-
-      const url = URL.createObjectURL(blob);
-      const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
-
-      // iOS: open in new tab so user can long-press / save
-      if (isIOSDevice()) {
-        window.open(url, "_blank", "noopener,noreferrer");
-        // revoke later
-        setTimeout(() => URL.revokeObjectURL(url), 15000);
-        return;
-      }
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-    } catch (e) {
-      console.error(e);
-      // final fallback: open the image
-      window.open(finalUrl, "_blank", "noopener,noreferrer");
-    }
+    const a = document.createElement("a");
+    a.href = finalUrl;
+    a.download = `kissco-strip-${frame}-${mode || "color"}.png`;
+    a.click();
   }
 
   async function shareStrip() {
     if (!finalUrl) return;
     try {
-      const blob = finalUrl.startsWith("data:")
-        ? dataUrlToBlob(finalUrl)
-        : await (await fetch(finalUrl)).blob();
-
+      const res = await fetch(finalUrl);
+      const blob = await res.blob();
       const file = new File([blob], "kissco-strip.png", { type: "image/png" });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -375,30 +326,22 @@ export default function App() {
           files: [file],
         });
       } else {
-        await downloadStrip();
+        downloadStrip();
       }
     } catch {
-      await downloadStrip();
+      downloadStrip();
     }
   }
 
-  function slotPxToDomStyle(r) {
-    return {
-      left: `${(r.x / BASE_STRIP_W) * 100}%`,
-      top: `${(r.y / BASE_STRIP_H) * 100}%`,
-      width: `${(r.w / BASE_STRIP_W) * 100}%`,
-      height: `${(r.h / BASE_STRIP_H) * 100}%`,
-    };
-  }
-
-  // ✅ booth uses PREVIEW overlay so spacing matches what user saw in picker
-  const boothOverlaySrc = overlaySet.preview || overlaySet.final;
+  // ✅ Booth overlay MUST be FINAL (transparent windows)
+  const boothOverlaySrc = overlaySet.final;
 
   return (
     <div className="app">
-      <div className={`screen ${step === "start" ? "startBg startScreen" : ""}`}>
+      <div className="screen">
         <audio ref={shutterRef} src="/assets/shutter.mp3" preload="auto" />
 
+        {/* START */}
         {step === "start" && (
           <>
             <div className="startRow">
@@ -410,7 +353,10 @@ export default function App() {
               <button className="tapBtn" onClick={() => setStep("filter")} aria-label="Tap to start">
                 <svg className="tapSvg" viewBox="0 0 200 200">
                   <defs>
-                    <path id="circlePath" d="M 100, 100 m -74, 0 a 74,74 0 1,1 148,0 a 74,74 0 1,1 -148,0" />
+                    <path
+                      id="circlePath"
+                      d="M 100, 100 m -74, 0 a 74,74 0 1,1 148,0 a 74,74 0 1,1 -148,0"
+                    />
                   </defs>
                   <text className="tapText">
                     <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
@@ -418,7 +364,7 @@ export default function App() {
                     </textPath>
                   </text>
                 </svg>
-                <div className="tapCenter" />
+                <div className="tapCenter"></div>
               </button>
             </div>
 
@@ -426,6 +372,7 @@ export default function App() {
           </>
         )}
 
+        {/* FILTER */}
         {step === "filter" && (
           <>
             <div className="center">
@@ -450,6 +397,7 @@ export default function App() {
           </>
         )}
 
+        {/* FRAME */}
         {step === "frame" && (
           <>
             <div className="center">
@@ -459,17 +407,15 @@ export default function App() {
             <div className="frameChoices">
               {[3, 4].map((n) => (
                 <div key={n} className={`frameCard ${frame === n ? "selected" : ""}`} onClick={() => setFrame(n)}>
-                  <div className="frameThumb">
-                    <img
-                      className="frameImg"
-                      src={OVERLAYS[n].preview || OVERLAYS[n].final}
-                      alt={`frame ${n}`}
-                      loading="eager"
-                      onError={(e) => {
-                        e.currentTarget.src = OVERLAYS[n].final;
-                      }}
-                    />
-                  </div>
+                  <img
+                    className="frameImg"
+                    src={OVERLAYS[n].preview || OVERLAYS[n].final}
+                    alt={`frame ${n}`}
+                    loading="eager"
+                    onError={(e) => {
+                      e.currentTarget.src = OVERLAYS[n].final;
+                    }}
+                  />
                   <div className="frameLabel">{n} STRIP</div>
                 </div>
               ))}
@@ -488,6 +434,7 @@ export default function App() {
           </>
         )}
 
+        {/* BOOTH */}
         {step === "booth" && (
           <>
             <div className="boothHeader">
@@ -495,88 +442,62 @@ export default function App() {
               <div className="subSmall">THERE IS A {COUNTDOWN_SECONDS} SECOND TIMER BETWEEN SHOTS.</div>
             </div>
 
-            <div
-              className="boothGrid"
-              style={{
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: isMobile ? 18 : 26,
-              }}
-            >
-              <div className="cameraWrap" style={{ width: isMobile ? "min(92vw, 520px)" : undefined }}>
-                <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
+            <div className="boothGrid">
+              {/* Camera */}
+              <div className="cameraWrap">
+                <video
+                  className={`video ${mode === "bw" ? "bw" : ""}`}
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap" style={{ width: isMobile ? "min(72vw, 360px)" : undefined }}>
+              {/* Strip Preview */}
+              <div className="stripPreviewWrap">
                 <div className="stripGlow" />
 
-                <div
-                  className="stripPreview"
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    aspectRatio: `${BASE_STRIP_W} / ${BASE_STRIP_H}`,
-                    height: "auto",
-                    overflow: "hidden",
-                    borderRadius: 18,
-                  }}
-                >
-                  {slotsPx.map((r0, idx) => {
-                    const domStyle = slotPxToDomStyle(r0);
-                    const src = shots[idx];
+                <div className="stripPreview">
+                  {/* White window placeholders (keeps it looking correct before photos) */}
+                  {slotsPx.map((r0, idx) => (
+                    <div
+                      key={`win-${idx}`}
+                      style={{
+                        ...slotPxToDomStyle(r0),
+                        position: "absolute",
+                        background: "#ffffff",
+                        zIndex: 1,
+                      }}
+                    />
+                  ))}
 
+                  {/* Photos */}
+                  {slotsPx.map((r0, idx) => {
+                    const src = shots[idx];
                     return (
                       <div
-                        key={idx}
+                        key={`ph-${idx}`}
                         className="previewSlot"
                         style={{
-                          ...domStyle,
-                          position: "absolute",
+                          ...slotPxToDomStyle(r0),
                           zIndex: 2,
-                          overflow: "hidden",
                         }}
                       >
-                        {src ? (
-                          <img
-                            src={src}
-                            alt={`shot ${idx + 1}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              filter: mode === "bw" ? "grayscale(1)" : "none",
-                            }}
-                          />
-                        ) : null}
+                        {src ? <img src={src} alt={`shot ${idx + 1}`} /> : null}
                       </div>
                     );
                   })}
 
-                  <img
-                    className="stripOverlay"
-                    src={boothOverlaySrc}
-                    alt="strip overlay"
-                    loading="eager"
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      zIndex: 3,
-                      pointerEvents: "none",
-                    }}
-                    onError={() => console.error("Overlay failed to load:", boothOverlaySrc)}
-                  />
+                  {/* Overlay ON TOP (must be transparent windows) */}
+                  <img className="stripOverlay" src={boothOverlaySrc} alt="strip overlay" loading="eager" />
                 </div>
               </div>
             </div>
 
-            <div className="buttonRowResult" style={{ marginTop: 14 }}>
+            <div className="buttonRowResult">
               <button className="secondaryBtn" onClick={() => setStep("frame")}>
                 BACK
               </button>
@@ -589,58 +510,27 @@ export default function App() {
           </>
         )}
 
+        {/* RESULT */}
         {step === "result" && (
           <>
             <div className="center">
               <div className="titleSmall">YOU LOOK SO GOOD!</div>
             </div>
 
-            <div
-              className="resultWrap"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 14,
-                paddingBottom: 18,
-              }}
-            >
-              {finalUrl ? (
-                <div
-                  className="finalCard"
-                  style={{
-                    width: "min(92vw, 420px)",
-                    maxHeight: "65vh",
-                    overflow: "auto",
-                    borderRadius: 18,
-                  }}
-                >
-                  <img
-                    className="finalStrip"
-                    src={finalUrl}
-                    alt="final strip"
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      display: "block",
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="loadingBox">BUILDING…</div>
-              )}
+            <div className="resultWrap">
+              {finalUrl ? <img className="finalStrip" src={finalUrl} alt="final strip" /> : <div className="loadingBox">BUILDING…</div>}
+            </div>
 
-              <div className="buttonRowResult" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-                <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>
-                  DOWNLOAD
-                </button>
-                <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>
-                  SHARE
-                </button>
-                <button className="secondaryBtn" onClick={resetAll}>
-                  START OVER
-                </button>
-              </div>
+            <div className="buttonRowResult">
+              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>
+                DOWNLOAD
+              </button>
+              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>
+                SHARE
+              </button>
+              <button className="secondaryBtn" onClick={resetAll}>
+                START OVER
+              </button>
             </div>
 
             <div className="credit lower">BOOTH MADE BY @LEILASVISUALS</div>
