@@ -16,8 +16,7 @@ body{
     radial-gradient(900px 600px at 50% 40%, rgba(255,139,199,0.18) 0%, rgba(92,181,232,0.08) 35%, rgba(0,0,0,0) 70%),
     radial-gradient(1100px 800px at 30% 70%, rgba(92,181,232,0.10) 0%, rgba(0,0,0,0) 65%),
     linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
-  overflow-x:hidden;
-  overflow-y:hidden;
+  overflow: hidden;
 }
 
 .app{
@@ -67,7 +66,6 @@ body{
   white-space: nowrap;
   text-align: center;
 }
-.credit.lower{ bottom: auto; }
 
 /* ---------------- START ---------------- */
 .startRow{
@@ -132,7 +130,7 @@ body{
   height: 10px;
   border-radius: 999px;
   background: var(--pink);
-  opacity: .0;
+  opacity: 0;
 }
 
 @keyframes spin{
@@ -246,31 +244,11 @@ body{
   opacity: 0.95;
 }
 
-@media (max-width: 900px){
-  .frameButtonRow{
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    width: calc(100% - 24px);
-    max-width: 520px;
-
-    display: flex;
-    gap: 12px;
-    z-index: 999;
-
-    padding: 12px;
-    border-radius: 18px;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 16px 50px rgba(0,0,0,0.45);
-  }
-
-  .frameButtonRow .secondaryBtn,
-  .frameButtonRow .primaryBtn{
-    flex: 1;
-    min-height: 52px;
-  }
+.frameButtonRow{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+  justify-content:center;
 }
 
 /* ---------------- BOOTH ---------------- */
@@ -329,7 +307,7 @@ body{
 
 .flash{
   position:absolute;
-  inset:-2px;               /* slightly larger than camera */
+  inset:-2px;
   background: #fff;
   opacity:0;
   pointer-events:none;
@@ -337,10 +315,7 @@ body{
   z-index: 30;
   will-change: opacity;
 }
-
-.flash.on{
-  opacity: 1;
-}
+.flash.on{ opacity: 1; }
 
 /* ---------------- LIVE PREVIEW STRIP ---------------- */
 .stripPreviewWrap{
@@ -365,41 +340,47 @@ body{
   pointer-events:none;
 }
 
-/* ===== Strip preview must be a strict 600:1800 box ===== */
+/* ✅ Give the preview a real size so the absolute slots behave consistently */
 .stripPreview{
   position: relative;
-  aspect-ratio: 600 / 1800;
-  overflow: hidden;           /* clips anything that would spill */
-  border-radius: 0;
+  width: 320px;              /* desktop target width */
+  aspect-ratio: 600 / 1800;  /* must match your BASE coords */
+  overflow: hidden;
   background: rgba(0,0,0,0.15);
+  z-index: 1;
 }
 
-/* placeholders are the slots themselves */
+/* photo slots */
 .previewSlot{
   position: absolute;
   overflow: hidden;
-  background: #fff;           /* ✅ placeholders */
+  background: #fff;          /* placeholder */
   border-radius: 0;
   z-index: 2;
+}
+
+.previewSlot.filled{
+  background: transparent;
 }
 
 .previewImg{
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;          /* ✅ never stretch */
+  object-fit: cover;
   object-position: center;
 }
 
-/* ✅ THIS is what fixes the “extra white rectangles” problem */
+/* ✅ Overlay must not crop; it must align with the 600x1800 coordinate system */
 .stripOverlay{
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;          /* ✅ NOT contain */
+  object-fit: contain;        /* ✅ IMPORTANT: do not crop the overlay */
   z-index: 5;
   pointer-events: none;
+  user-select: none;
 }
 
 /* ---------------- RESULT ---------------- */
@@ -437,15 +418,18 @@ body{
   margin-top: 8px;
 }
 
-/* ========== MOBILE: keep everything reachable (no layout wreck) ========== */
+/* ---------------- MOBILE ---------------- */
 @media (max-width: 900px){
-  body{ overflow-y:hidden; }
   .app{ padding: 10px; }
+
   .screen{
     width: 100%;
     min-height: 100dvh;
+    justify-content: flex-start;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom));
   }
 
+  /* Start */
   .startRow{
     flex-direction:column;
     gap: 16px;
@@ -455,49 +439,35 @@ body{
     height: 210px;
   }
 
-  .frameChoices{
-    flex-wrap:nowrap;
-  }
-  .frameCard{
-    width: 46vw;
-  }
+  /* Frame cards */
+  .frameChoices{ flex-wrap: nowrap; }
+  .frameCard{ width: 46vw; }
 
+  /* Booth layout */
   .boothHeader{
     position: static;
     transform:none;
     margin-top: 8px;
   }
+
   .boothGrid{
     grid-template-columns: 1fr;
     gap: 14px;
   }
+
   .cameraWrap{
-    width: min(94vw, 760px);
-    max-height: 38dvh;
+    width: min(92vw, 760px);
+    max-height: 38vh;
   }
+
   .stripPreview{
-    width: min(62vw, 300px);
-    height: min(34dvh, 340px);
-  }
-}
-@media (max-width: 900px){
-  /* gives breathing room above Safari bottom nav/home bar */
-  .screen{
-    padding-bottom: calc(140px + env(safe-area-inset-bottom));
-  }
-}
-/* ===== Mobile: buttons must ALWAYS be reachable ===== */
-@media (max-width: 900px){
-
-  /* Stop vertical centering from pushing buttons down */
-  .screen{
-    justify-content: flex-start !important;
-    padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
+    width: min(56vw, 240px);
+    max-height: 30vh;
   }
 
-  /* Fixed bottom bar ABOVE Safari nav */
+  /* Fixed bottom buttons (for frame + booth + result) */
   .frameButtonRow{
-    position: fixed !important;
+    position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
@@ -517,82 +487,18 @@ body{
   .frameButtonRow .primaryBtn{
     flex: 1;
     max-width: 240px;
-    min-height: 54px;          /* big tap target */
+    min-height: 54px;
   }
 
-  /* Credit can overlap bottom bar—hide on mobile */
-  .credit{ display:none !important; }
-}
+  .credit{ display:none; }
 
-/* ===== Booth: MOBILE constraints (fix stretched preview + camera sizing) ===== */
-@media (max-width: 900px){
-
-  /* let the booth content fit without spilling under Safari */
-  .screen{
-    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
-    justify-content: flex-start !important;
-  }
-
-  /* CAMERA: wide + constrained */
-  .cameraWrap{
-  position: relative;
-  width: min(92vw, 760px);
-  aspect-ratio: 16 / 9;       /* ✅ always wide */
-  height: auto;
-  border-radius: 22px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.25);
-  box-shadow: 0 25px 80px rgba(0,0,0,0.55);
-}
-
-.video{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;          /* ✅ fixes “no constraint / weird fit” */
-  transform: scaleX(-1);
-  display: block;
-}
-@media (max-width: 900px){
-  .cameraWrap{
-    max-height: 38vh;
-  }
-
-  .stripPreview{
-    width: min(56vw, 240px);
-    max-height: 30vh;
-  }
-}
-
-  /* STRIP: smaller + clipped (prevents stretched “wide rectangles”) */
-  .stripPreviewWrap{
-    width: 100% !important;
-    overflow: hidden !important;
-    display: flex !important;
-    justify-content: center !important;
-  }
-
-  .stripPreview{
-    width: min(52vw, 220px) !important;  /* smaller on mobile */
-    max-height: 30vh !important;         /* keep it from eating the screen */
-    height: auto !important;
-    aspect-ratio: 600 / 1800 !important;
-    overflow: hidden !important;          /* ✅ clips slots */
-  }
-}
-
-/* ===== Result screen: keep strip fully visible above Safari bar ===== */
-@media (max-width: 900px){
-  .resultWrap{
-    padding-bottom: calc(90px + env(safe-area-inset-bottom));
-  }
-
+  /* Result */
   .finalStrip{
-    max-height: 68vh !important;
-    max-width: 92vw !important;
-    width: auto !important;
-    height: auto !important;
-    object-fit: contain !important;
+    max-height: 68vh;
+    max-width: 92vw;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     display: block;
   }
 }
