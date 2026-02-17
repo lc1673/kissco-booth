@@ -1,412 +1,153 @@
 :root{
-  --pink: rgb(255,139,199);
-  --blue:#5CB5E8;
+  --pink:#ff8bc7;
   --bg1:#05060a;
   --bg2:#0b0d18;
-  --white:#ffffff;
-
-  /* Desktop reference size (kept for desktop) */
-  --deskW: 1100;
-  --deskH: 720;
-
-  /* Consistent strip sizing */
-  --strip-aspect: 600 / 1800; /* 1:3 */
-  --mobile-strip-max: 320px;
-  --mobile-strip-width: min(86vw, var(--mobile-strip-max));
+  --white:#fff;
 }
 
-*{ box-sizing:border-box; }
-html, body{ height:100%; width:100%; margin:0; padding:0; }
-
-body{
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: var(--white);
-  background:
-    radial-gradient(900px 600px at 50% 40%, rgba(255,139,199,0.18) 0%, rgba(92,181,232,0.08) 35%, rgba(0,0,0,0) 70%),
-    radial-gradient(1100px 800px at 30% 70%, rgba(92,181,232,0.10) 0%, rgba(0,0,0,0) 65%),
-    linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
-  overflow-x:hidden;
-  overflow-y:hidden;
+*{box-sizing:border-box;}
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  font-family:system-ui,-apple-system;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:var(--white);
 }
 
-/* hard fallback so Safari never goes white */
-html, body, #root{
-  background: #05060a !important;
-  height: 100%;
-}
-
-img, video{ display:block; }
-
-/* ✅ FULLSCREEN APP */
 .app{
-  height: 100dvh;
-  width: 100vw;
+  height:100dvh;
+  width:100vw;
   display:flex;
-  align-items: stretch;
-  justify-content: stretch;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  justify-content:center;
+  align-items:center;
 }
 
-/* ✅ FULLSCREEN SCREEN */
 .screen{
-  width: 100%;
-  height: 100%;
-  min-height: 100dvh;
-  position: relative;
-
+  height:100%;
+  width:100%;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:space-between;
-  gap: 18px;
-
-  padding: 18px 16px;
-  box-sizing: border-box;
-
-  transform: none !important;
-  max-width: none !important;
-  margin: 0 !important;
+  padding:16px;
 }
-
-.center{ text-align:center; }
 
 .titleSmall{
-  font-size: clamp(22px, 6vw, 30px);
-  font-weight: 900;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-}
-.subSmall{
-  opacity:0.8;
-  font-size: 12px;
-  letter-spacing: 0.20em;
-  text-transform: uppercase;
-}
-.credit{
-  font-size: 11px;
-  opacity: 0.7;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.credit.lower{
-  position: static;
-  transform: none;
-  margin-top: 6px;
+  font-weight:900;
+  letter-spacing:.1em;
 }
 
-/* ---------------- START (full strips + button beside) ---------------- */
-.startRow{
-  width: 100%;
-  flex: 1;
+.buttonRow{
   display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 26px;
+  gap:12px;
 }
 
-.startStrips{
+.bigPill{
+  padding:16px 24px;
+  border-radius:16px;
+  background:var(--pink);
+  border:none;
+  color:white;
+  font-weight:900;
+}
+
+.primaryBtn{
+  padding:14px 20px;
+  border-radius:14px;
+  border:none;
+  background:var(--pink);
+  color:white;
+  font-weight:900;
+}
+
+.secondaryBtn{
+  padding:14px 20px;
+  border-radius:14px;
+  border:1px solid #fff3;
+  background:transparent;
+  color:white;
+  font-weight:900;
+}
+
+.largeStart{
+  width:90%;
+  max-width:420px;
+  min-height:60px;
+}
+
+.startWrap{
   display:flex;
-  align-items:center;
+  gap:12px;
   justify-content:center;
-  gap: 16px;
+  align-items:center;
 }
 
 .startStrip{
-  width: clamp(180px, 20vw, 230px);
-  aspect-ratio: var(--strip-aspect);
-  object-fit: contain;
-  border-radius: 16px;
-  filter: drop-shadow(0 18px 60px rgba(0,0,0,0.6));
+  width:42%;
+  max-width:200px;
 }
 
-.tiltLeft{ transform: rotate(-6deg); }
-.tiltRight{ transform: rotate(6deg); }
-
-.tapBtn{
-  position: relative;
-  width: clamp(175px, 18vw, 220px);
-  height: clamp(175px, 18vw, 220px);
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.20);
-  background: rgba(0,0,0,0.22);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 26px 70px rgba(0,0,0,0.55);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tapBtn:hover{ border-color: rgba(255,139,199,0.45); }
-
-.tapSvg{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  animation: spin 10s linear infinite;
-}
-.tapText{
-  fill: var(--pink);
-  font-weight: 900;
-  letter-spacing: 0.28em;
-  font-size: 12.7px;
-  text-transform: uppercase;
-}
-.tapCenter{
-  color: var(--pink);
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  font-size: 12px;
-  text-transform: uppercase;
-}
-@keyframes spin{
-  from{ transform: rotate(0deg); }
-  to{ transform: rotate(360deg); }
-}
-
-/* ---------------- BUTTONS ---------------- */
-.buttonRow{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 14px;
-  flex-wrap:wrap;
-}
-.orText{
-  opacity:0.8;
-  letter-spacing:0.18em;
-  font-weight:900;
-  text-transform: uppercase;
-}
-.bigPill{
-  min-width: 160px;
-  padding: 16px 24px;
-  border-radius: 16px;
-  border: 0;
-  background: rgba(255,139,199,0.92);
-  color: white;
-  font-weight: 900;
-  letter-spacing: 0.10em;
-  cursor:pointer;
-  box-shadow: 0 20px 50px rgba(255,139,199,0.25);
-  text-transform: uppercase;
-  font-size: 18px;
-}
-.bigPill.active{
-  outline: 2px solid rgba(255,255,255,0.35);
-  transform: translateY(-1px);
-}
-.primaryBtn{
-  padding: 14px 22px;
-  border-radius: 14px;
-  border: 0;
-  background:#5CB5E8;
-  color: white;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  cursor:pointer;
-  text-transform: uppercase;
-  box-shadow: 0 16px 40px rgba(255,139,199,0.25);
-}
-.primaryBtn:disabled{ opacity:0.55; cursor:not-allowed; }
-.secondaryBtn{
-  padding: 12px 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(0,0,0,0.2);
-  color: white;
-  font-weight: 800;
-  letter-spacing: 0.10em;
-  cursor:pointer;
-  text-transform: uppercase;
-}
-
-/* ---------------- FRAME PICKER (smaller strips) ---------------- */
 .frameChoices{
   display:flex;
-  gap: 12px;
-  justify-content:center;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  width: 100%;
-  max-width: 520px;
+  gap:12px;
 }
 
 .frameCard{
-  flex: 0 0 210px;              /* ✅ keeps strips smaller */
-  width: 210px;
-  border-radius: 0px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.25);
-  padding: 12px;
-  cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+  width:42%;
+  text-align:center;
+  border:1px solid #fff2;
+  padding:8px;
 }
 
-@media (max-width: 480px){
-  .frameCard{
-    flex: 0 0 44vw;
-    width: 44vw;
-    padding: 10px;
-  }
+.frameCard img{
+  width:100%;
 }
 
 .frameCard.selected{
-  border-color: rgba(255,139,199,0.55);
-  box-shadow: 0 18px 60px rgba(255,139,199,0.10);
+  border-color:var(--pink);
 }
 
-.frameThumb{
-  width: 100%;
-  aspect-ratio: var(--strip-aspect);
-  border-radius: 12px;
-  overflow:hidden;
-  background: rgba(0,0,0,0.15);
-  filter: drop-shadow(0 12px 34px rgba(0,0,0,0.5));
-}
-
-.frameImg{
-  width:100%;
-  height:100%;
-  object-fit: contain;
-}
-
-.frameLabel{
-  margin-top: 10px;
-  color: white;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 12px;
-  opacity: 0.95;
-}
-
-/* ---------------- BOOTH ---------------- */
-.boothHeader{
-  width: 100%;
-  text-align:center;
+.boothArea{
+  flex:1;
   display:flex;
   flex-direction:column;
-  gap: 10px;
-}
-
-.boothGrid{
-  width:100%;
-  flex: 1;
-  display:flex;
-  flex-direction: column;
-  gap: 14px;
   align-items:center;
   justify-content:center;
-}
-
-@media (min-width: 900px){
-  .boothGrid{
-    flex-direction: row;
-    gap: 28px;
-    align-items: center;
-    justify-content: center;
-  }
-  .cameraWrap{ flex: 1.35; }
-  .stripPreviewWrap{ flex: 0.65; }
+  gap:14px;
+  width:100%;
 }
 
 .cameraWrap{
-  position:relative;
-  width: 92vw;
-  max-width: 760px;
-  aspect-ratio: 16 / 9;
-  border-radius: 22px;
+  width:92vw;
+  max-height:38dvh;
+  aspect-ratio:16/9;
+  border-radius:18px;
   overflow:hidden;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.25);
-  box-shadow: 0 25px 80px rgba(0,0,0,0.55);
 }
 
-/* ✅ Fix iPhone morph: cover is correct */
 .video{
   width:100%;
   height:100%;
-  object-fit: cover;
-  object-position: center;
-  transform: scaleX(-1);
-}
-.video.bw{ filter: grayscale(1); }
-
-.countdown{
-  position:absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: clamp(48px, 10vw, 64px);
-  font-weight: 900;
-  letter-spacing: 0.50em;
-  text-shadow: 0 14px 40px rgba(0,0,0,0.6);
-  z-index: 10;
-}
-
-.flash{
-  position:absolute;
-  inset:0;
-  background: white;
-  opacity:0;
-  pointer-events:none;
-  transition: opacity 120ms linear;
-  z-index: 12;
-}
-.flash.on{ opacity: 0.95; }
-
-/* ---------------- LIVE PREVIEW STRIP ---------------- */
-.stripPreviewWrap{
-  position: relative;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  width: 100%;
-}
-
-.stripGlow{
-  position:absolute;
-  inset: -18px;
-  background: radial-gradient(
-    circle at 50% 20%,
-    rgba(255, 140, 200, 0.35),
-    rgba(50, 80, 140, 0.08) 60%,
-    rgba(0, 0, 0, 0) 75%
-  );
-  filter: blur(18px);
-  z-index: 0;
-  pointer-events:none;
+  object-fit:cover;
+  transform:scaleX(-1);
 }
 
 .stripPreview{
-  position: relative;
-  width: min(62vw, 320px);
-  aspect-ratio: var(--strip-aspect);
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-  z-index: 1;
-  background: rgba(0,0,0,0.15);
+  height:min(34dvh,340px);
+  aspect-ratio:600/1800;
+  position:relative;
 }
 
 .previewSlot{
   position:absolute;
   overflow:hidden;
-  background:#fff;   /* ✅ shows white boxes even when empty */
-  z-index:2;
 }
 
 .previewSlot img{
   width:100%;
   height:100%;
-  object-fit: cover;
-  object-position:center;
+  object-fit:cover;
 }
 
 .stripOverlay{
@@ -414,375 +155,20 @@ img, video{ display:block; }
   inset:0;
   width:100%;
   height:100%;
-  object-fit: contain;
-  z-index: 5;
-  pointer-events:none;
 }
 
-/* ---------------- RESULT ---------------- */
-.resultWrap{
-  flex: 1;
-  width: 100%;
+.stickyBar{
   display:flex;
-  align-items:center;
+  gap:12px;
+  width:100%;
+  max-width:520px;
   justify-content:center;
+  position:sticky;
+  bottom:12px;
 }
 
-.finalStrip{
-  width: min(92vw, 420px);
-  aspect-ratio: var(--strip-aspect);
-  height: auto;
-  object-fit: contain;
-  border-radius: 18px;
-  box-shadow: 0 22px 80px rgba(0,0,0,0.65);
-}
-
-.loadingBox{
-  width: min(70vw, 320px);
-  aspect-ratio: var(--strip-aspect);
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.14);
-  display:grid;
-  place-items:center;
-  opacity:0.85;
-}
-
-.buttonRowResult{
-  display:flex;
-  gap: 14px;
-  align-items:center;
-  justify-content:center;
-  flex-wrap:wrap;
-  padding-bottom: 6px;
-}
-
-@media (max-width: 900px){
-  .screen{ padding: 14px 12px; gap: 10px; justify-content: flex-start; }
-  .titleSmall{ font-size: clamp(18px, 5vw, 24px); letter-spacing: 0.08em; }
-  .subSmall{ font-size: 11px; letter-spacing: 0.16em; }
-
-  .cameraWrap{ max-height: 38dvh; }
-  .stripPreview{ width: var(--mobile-strip-width); max-height: 32dvh; }
-  .finalStrip{ width: var(--mobile-strip-width); }
-
-  .primaryBtn, .secondaryBtn{ min-height: 48px; padding: 14px 18px; }
-}
-
-@media (max-height: 720px){
-  .cameraWrap{ max-height: 34dvh; }
-  .stripPreview{ max-height: 28dvh; }
-}
-
-/* ✅ START-ONLY background override (your “previous” gradient) */
-.screen.startBg{
-  background:
-    radial-gradient(900px 600px at 50% 40%, rgba(255,139,199,0.18) 0%, rgba(92,181,232,0.08) 35%, rgba(0,0,0,0) 70%),
-    radial-gradient(1100px 800px at 30% 70%, rgba(92,181,232,0.10) 0%, rgba(0,0,0,0) 65%),
-    linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
-}
-/* ✅ Mobile: allow START screen to scroll if content is taller than viewport */
-@media (max-width: 700px){
-  .screen.startScreen{
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start; /* stops pushing button off-screen */
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
-  }
-
-  /* Make start content fit better on phones */
-  .screen.startScreen .startRow{
-    flex: 0 0 auto;
-    margin-top: 8px;
-    gap: 14px;
-  }
-
-  .screen.startScreen .startStrip{
-    width: min(40vw, 170px);   /* shrink strips so button stays visible */
-  }
-
-  .screen.startScreen .tapBtn{
-    width: 180px;
-    height: 180px;
-    margin-bottom: 16px;
-    z-index: 2;
-  }
-}
-/* =========================
-   MOBILE: TAP BUTTON OVER STRIPS
-========================= */
-@media (max-width: 700px){
-
-  .startRow{
-    position: relative;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .startStrips{
-    position: relative;
-    z-index: 1;
-  }
-
-  .startStrip{
-    width: min(70vw, 240px);
-  }
-
-  /* 🔥 Float button over strips */
-  .tapBtn{
-    position: absolute;
-    z-index: 3;
-    width: 190px;
-    height: 190px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    backdrop-filter: blur(6px);
-    background: rgba(0,0,0,0.35);
-    border: 1px solid rgba(255,255,255,0.35);
-  }
-
-}
-/* =========================
-   MOBILE BOOTH LAYOUT FIX
-   (make camera + strip + buttons fit)
-========================= */
-@media (max-width: 700px){
-
-  /* less empty space */
-  .screen{
-    gap: 10px;
-    padding: 14px 12px;
-    justify-content: flex-start;
-  }
-
-  .boothGrid{
-    gap: 12px;
-  }
-
-  /* Camera: keep wide but not too tall */
-  .cameraWrap{
-    width: 92vw;
-    max-width: 760px;
-    aspect-ratio: 16 / 9;
-    max-height: 30dvh;  /* ✅ smaller than before */
-  }
-
-  /* Preview strip: make it smaller so buttons don't feel cramped */
-  .stripPreview{
-    width: min(70vw, 260px);
-    max-height: 28dvh;
-  }
-
-  /* Buttons: full width, comfy */
-  .buttonRowResult{
-    width: 100%;
-    gap: 10px;
-    padding-bottom: 10px;
-  }
-
-  .primaryBtn, .secondaryBtn{
-    width: 100%;
-    max-width: 420px;
-  }
-}
-
-/* super short phones safety */
-@media (max-width:700px) and (max-height:720px){
-  .cameraWrap{ max-height: 26dvh; }
-  .stripPreview{ max-height: 24dvh; width: min(68vw, 240px); }
-}
-/* =========================
-   FINAL STRIP GRADIENT CARD
-========================= */
-.finalCard{
-  padding: 14px;
-  border-radius: 22px;
-  background:
-    radial-gradient(420px 520px at 50% 10%, rgba(255,139,199,0.35) 0%, rgba(0,0,0,0) 60%),
-    radial-gradient(520px 520px at 50% 90%, rgba(92,181,232,0.22) 0%, rgba(0,0,0,0) 65%),
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.22));
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 30px 90px rgba(0,0,0,0.6);
-}
-
-.finalStrip{
-  width: min(92vw, 420px);
-  height: auto;
-  display: block;
-  border-radius: 16px;
-  box-shadow: 0 22px 80px rgba(0,0,0,0.55);
-}
-/* ✅ iOS-safe full height */
-.screen {
-  min-height: 100dvh;
-}
-
-/* ✅ booth layout: desktop defaults */
-.boothGrid {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 26px;
-}
-
-/* ✅ booth layout: mobile overrides */
-@media (max-width: 860px) {
-  .boothGrid {
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  /* camera gets a max height so it doesn't dominate */
-  .cameraWrap {
-    width: min(92vw, 520px);
-    max-height: 42dvh;
-  }
-
-  .video {
-    width: 100%;
-    height: 42dvh;
-    max-height: 42dvh;
-    object-fit: cover;
-    border-radius: 18px;
-  }
-
-  /* strip preview smaller so buttons stay visible */
-  .stripPreviewWrap {
-    width: min(72vw, 320px);
-  }
-
-  .stripPreview {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 600 / 1800;
-    max-height: 34dvh;
-    overflow: hidden;
-    border-radius: 18px;
-  }
-
-  /* keep buttons visible */
-  .buttonRowResult {
-    margin-top: 8px !important;
-    padding-bottom: 14px;
-  }
-}
-
-/* =========================
-   GLOBAL: kill “white page” bleed on iOS Safari
-========================= */
-html, body{
-  background: #05060a;          /* hard fallback */
-}
-
-img, video{
-  display: block;               /* removes inline gaps */
-  background: transparent;
-}
-
-/* =========================
-   MOBILE CONSTRAINT MODE
-   (works across all phones)
-========================= */
-@media (max-width: 900px){
-
-  /* Make screen act like a fixed app canvas */
-  .screen{
-    padding: 14px 12px;
-    gap: 10px;
-    justify-content: flex-start;
-  }
-
-  /* Reduce header text so it doesn't eat vertical space */
-  .titleSmall{
-    font-size: clamp(18px, 5vw, 24px);
-    letter-spacing: 0.08em;
-  }
-  .subSmall{
-    font-size: 11px;
-    letter-spacing: 0.16em;
-  }
-
-  /* ---------- START: no extra space + big button ---------- */
-  .startRow{
-    flex: 1;
-    width: 100%;
-    gap: 14px;
-    justify-content: center;
-  }
-
-  .startStrips{
-    gap: 10px;
-  }
-
-  .startStrip{
-    width: 42vw;
-    max-width: 190px;
-  }
-
-  .tapBtn{
-    width: clamp(170px, 46vw, 210px);
-    height: clamp(170px, 46vw, 210px);
-  }
-
-  /* ---------- FRAME PICKER: force side-by-side ---------- */
-  .frameChoices{
-    width: 100%;
-    max-width: 520px;
-    gap: 12px;
-    flex-wrap: nowrap; /* never stack */
-  }
-  .frameCard{
-    flex: 1;
-    min-width: 0;
-    padding: 10px;
-  }
-
-  /* ---------- BOOTH: ensure camera + strip + buttons fit ---------- */
-  .boothHeader{
-    flex: 0 0 auto;
-    margin-top: 4px;
-  }
-
-  .boothGrid{
-    flex: 1 1 auto;
-    width: 100%;
-    gap: 12px;
-    justify-content: center;
-  }
-
-  /* Key: camera gets a MAX HEIGHT so it can't push buttons offscreen */
-  .cameraWrap{
-    width: 92vw;
-    max-width: 760px;
-    aspect-ratio: 16 / 9;
-    height: auto;
-    max-height: 38dvh;          /* ✅ constrains vertical */
-  }
-
-  /* Strip smaller on mobile so it doesn't dominate */
-  .stripPreview{
-    width: min(54vw, 240px);    /* ✅ smaller */
-    max-height: 32dvh;          /* ✅ constrains vertical */
-  }
-
-  /* Make buttons always tappable and not tiny */
-  .buttonRowResult{
-    flex: 0 0 auto;
-    width: 100%;
-    gap: 10px;
-    padding-bottom: 10px;
-  }
-
-  .primaryBtn, .secondaryBtn{
-    min-height: 48px;           /* Apple tap target */
-    padding: 14px 18px;
-  }
-}
-
-/* Extra safety for short phones (SE, small Androids) */
-@media (max-height: 720px){
-  .cameraWrap{ max-height: 34dvh; }
-  .stripPreview{ max-height: 28dvh; }
-  .tapBtn{ width: 170px; height: 170px; }
+.countdown{
+  position:absolute;
+  font-size:48px;
+  font-weight:900;
 }
