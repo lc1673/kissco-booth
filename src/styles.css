@@ -502,3 +502,71 @@ body{
     display: block;
   }
 }
+/* ================= iPHONE / MOBILE LAYOUT FIXES ================= */
+
+/* Let the app scroll on small screens (body stays locked) */
+@media (max-width: 900px){
+  .screen{
+    height: 100dvh;
+    overflow-y: auto;                 /* ✅ allow vertical scroll */
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    padding-bottom: calc(190px + env(safe-area-inset-bottom)); /* space for bottom bar */
+  }
+
+  /* Headings slightly smaller so they don’t steal the viewport */
+  .titleSmall{
+    font-size: 24px;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* FRAME SCREEN: keep two cards from becoming insanely tall */
+@media (max-width: 900px){
+  .frameChoices{
+    flex-wrap: wrap;                   /* ✅ allow wrap if needed */
+    gap: 12px;
+  }
+
+  /* Each card becomes a "viewport-aware" height box */
+  .frameCard{
+    width: min(46vw, 240px);
+    height: min(52vh, 520px);         /* ✅ cap height so buttons fit */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Make the strip image fit inside that height */
+  .frameImg{
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;              /* ✅ don’t crop preview frames */
+    border-radius: 12px;
+  }
+
+  .frameLabel{
+    flex: 0 0 auto;
+    padding-bottom: 4px;
+  }
+}
+
+/* Extra-small phones: stack cards vertically (fixes cramped layout) */
+@media (max-width: 430px){
+  .frameCard{
+    width: min(88vw, 360px);
+    height: min(48vh, 440px);
+  }
+}
+
+/* Bottom buttons: ensure they sit ABOVE Safari UI */
+@media (max-width: 900px){
+  .frameButtonRow{
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 12px calc(18px + env(safe-area-inset-bottom)); /* ✅ more safe-area */
+    z-index: 9999;
+  }
+}
