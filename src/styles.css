@@ -702,3 +702,47 @@ body{
     min-height: 48px;
   }
 }
+/* ===== FINAL MOBILE START SCREEN POLISH ===== */
+@media (max-width: 900px){
+
+  /* --- Fix faint box behind strips --- */
+  .startStrips{
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+
+  /* Sometimes the box is coming from startRow/screen overlays */
+  .startRow{
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* If you still see it, it’s likely image rendering “halo” — this helps */
+  .startStrip{
+    background: transparent !important;
+    border-radius: 0 !important;
+    outline: none !important;
+  }
+
+  /* --- Make Tap button a TRUE full circle + prevent clipping --- */
+  .tapBtn{
+    width: 210px !important;
+    height: 210px !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 9999px !important;
+    overflow: hidden !important;         /* ensures perfect circle */
+    transform: translateZ(0);            /* fixes iOS rendering edge cases */
+    margin-bottom: 18px;                 /* pulls it above Safari UI */
+  }
+
+  .tapSvg{
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+@media (max-width: 900px){
+  .screen{
+    padding-bottom: calc(240px + env(safe-area-inset-bottom)) !important;
+  }
+}
