@@ -295,13 +295,34 @@ export default function App() {
     }
   }
 
-  function downloadStrip() {
-    if (!finalUrl) return;
+  async function downloadStrip() {
+  if (!finalUrl) return;
+
+  const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
+
+  try {
+    const res = await fetch(finalUrl);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
-    a.href = finalUrl;
-    a.download = `kissco-strip-${frame}-${mode || "color"}.png`;
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
+
+    // ✅ iOS Safari often ignores download attr — open in new tab fallback
+    setTimeout(() => {
+      try { window.open(url, "_blank"); } catch {}
+      URL.revokeObjectURL(url);
+    }, 200);
+  } catch (e) {
+    console.error(e);
+    // fallback: open the image directly
+    window.open(finalUrl, "_blank");
   }
+}
 
   async function shareStrip() {
     if (!finalUrl) return;
@@ -421,7 +442,13 @@ export default function App() {
 
             <div className="boothGrid">
               <div className="cameraWrap">
-                <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
+              <video
+                className={`video ${mode === "bw" ? "bw" : ""}`}
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+              />
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>

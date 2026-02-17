@@ -526,3 +526,59 @@ body{
   /* Credit can overlap bottom bar—hide on mobile */
   .credit{ display:none !important; }
 }
+
+/* ===== Booth: MOBILE constraints (fix stretched preview + camera sizing) ===== */
+@media (max-width: 900px){
+
+  /* let the booth content fit without spilling under Safari */
+  .screen{
+    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+    justify-content: flex-start !important;
+  }
+
+  /* CAMERA: wide + constrained */
+  .cameraWrap{
+    width: min(94vw, 760px) !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    max-height: 42vh !important;
+  }
+
+  .video{
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; /* ✅ critical */
+  }
+
+  /* STRIP: smaller + clipped (prevents stretched “wide rectangles”) */
+  .stripPreviewWrap{
+    width: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .stripPreview{
+    width: min(52vw, 220px) !important;  /* smaller on mobile */
+    max-height: 30vh !important;         /* keep it from eating the screen */
+    height: auto !important;
+    aspect-ratio: 600 / 1800 !important;
+    overflow: hidden !important;          /* ✅ clips slots */
+  }
+}
+
+/* ===== Result screen: keep strip fully visible above Safari bar ===== */
+@media (max-width: 900px){
+  .resultWrap{
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+
+  .finalStrip{
+    max-height: 68vh !important;
+    max-width: 92vw !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block;
+  }
+}
