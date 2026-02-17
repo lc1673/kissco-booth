@@ -523,3 +523,102 @@ body{
     height: min(48vh, 440px);
   }
 }
+/* ===== MOBILE: make the start CTA big + obvious ===== */
+@media (max-width: 900px){
+  .startRow{
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .startStrips{
+    gap: 14px;
+  }
+
+  .tapBtn{
+    width: 260px !important;
+    height: 260px !important;
+    border-width: 2px;
+  }
+
+  .tapText{
+    font-size: 14px !important;
+    letter-spacing: 0.24em !important;
+  }
+
+  .tapCenter{
+    width: 14px;
+    height: 14px;
+    opacity: 1; /* make the center dot visible */
+  }
+}
+/* ===== MOBILE: keep frame choices side-by-side, no scroll needed ===== */
+@media (max-width: 900px){
+  .frameChoices{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    width: min(92vw, 520px);
+    margin: 0 auto;
+  }
+
+  .frameCard{
+    width: 100% !important;
+    height: auto !important;
+    padding: 10px !important;
+  }
+
+  /* cap the preview image height so it doesn't push buttons off screen */
+  .frameImg{
+    max-height: 42vh !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  /* keep the back/start row simple and visible */
+  .frameButtonRow{
+    position: static !important;   /* no fixed bar needed here */
+    width: 100%;
+    margin-top: 14px;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .frameButtonRow .secondaryBtn,
+  .frameButtonRow .primaryBtn{
+    flex: 1;
+    min-height: 52px;
+    max-width: 220px;
+  }
+}
+/* ===== Camera guide overlay ===== */
+.cameraWrap{ position: relative; }
+
+.camGuide{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15; /* above video, below countdown/flash */
+  display: grid;
+  place-items: center;
+}
+
+/* The “what will be visible” frame */
+.camGuideFrame{
+  width: 58%;
+  height: 86%;
+  border: 2px solid rgba(255,255,255,0.55);
+  border-radius: 18px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.22); /* dims outside area */
+}
+
+/* Mobile: slightly larger guide so it’s easier to use */
+@media (max-width: 900px){
+  .camGuideFrame{
+    width: 66%;
+    height: 88%;
+    border-radius: 16px;
+  }
+}

@@ -428,8 +428,20 @@ export default function App() {
             </div>
 
             <div className="boothGrid">
-              <div className="cameraWrap">
-                <video className={`video ${mode === "bw" ? "bw" : ""}`} ref={videoRef} autoPlay playsInline muted />
+             <div className="cameraWrap">
+                <video
+                  className={`video ${mode === "bw" ? "bw" : ""}`}
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                />
+
+                {/* ✅ camera guide overlay */}
+                <div className="camGuide">
+                  <div className="camGuideFrame" />
+                </div>
+
                 <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
