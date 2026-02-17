@@ -365,44 +365,41 @@ body{
   pointer-events:none;
 }
 
+/* ===== Strip preview must be a strict 600:1800 box ===== */
 .stripPreview{
   position: relative;
-  width: 260px;
   aspect-ratio: 600 / 1800;
-  overflow: hidden;
+  overflow: hidden;           /* clips anything that would spill */
   border-radius: 0;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-  z-index: 1;
   background: rgba(0,0,0,0.15);
 }
 
-.placeholder{
-  position:absolute;
-  background:#fff;
-  z-index:1;
-}
-
+/* placeholders are the slots themselves */
 .previewSlot{
-  position:absolute;
-  overflow:hidden;
-  z-index:2;
-}
-.previewSlot img{
-  width:100%;
-  height:100%;
-  display:block;
-  object-fit: cover;
-  object-position:center;
+  position: absolute;
+  overflow: hidden;
+  background: #fff;           /* ✅ placeholders */
+  border-radius: 0;
+  z-index: 2;
 }
 
+.previewImg{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;          /* ✅ never stretch */
+  object-position: center;
+}
+
+/* ✅ THIS is what fixes the “extra white rectangles” problem */
 .stripOverlay{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit: contain;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;          /* ✅ NOT contain */
   z-index: 5;
-  pointer-events:none;
+  pointer-events: none;
 }
 
 /* ---------------- RESULT ---------------- */
@@ -538,17 +535,34 @@ body{
 
   /* CAMERA: wide + constrained */
   .cameraWrap{
-    width: min(94vw, 760px) !important;
-    aspect-ratio: 16 / 9 !important;
-    height: auto !important;
-    max-height: 42vh !important;
+  position: relative;
+  width: min(92vw, 760px);
+  aspect-ratio: 16 / 9;       /* ✅ always wide */
+  height: auto;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.25);
+  box-shadow: 0 25px 80px rgba(0,0,0,0.55);
+}
+
+.video{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;          /* ✅ fixes “no constraint / weird fit” */
+  transform: scaleX(-1);
+  display: block;
+}
+@media (max-width: 900px){
+  .cameraWrap{
+    max-height: 38vh;
   }
 
-  .video{
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important; /* ✅ critical */
+  .stripPreview{
+    width: min(56vw, 240px);
+    max-height: 30vh;
   }
+}
 
   /* STRIP: smaller + clipped (prevents stretched “wide rectangles”) */
   .stripPreviewWrap{
