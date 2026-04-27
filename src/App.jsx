@@ -1,509 +1,468 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import "./App.css";
 
-const OVERLAYS = {
-  3: {
-    startSample: "/overlays/sample-kissco-3.png",
-    preview: "/overlays/kissco-preview-3.png",
-    final: "/overlays/kissco-3.png", // ✅ transparent windows
-  },
-  4: {
-    startSample: "/overlays/sample-kissco-4.png",
-    preview: "/overlays/kissco-preview-4.png",
-    final: "/overlays/kissco-4.png", // ✅ transparent windows
-  },
-};
+function App() {
+  const videoRef = useRef(null);
 
-const BASE_STRIP_W = 600;
-const BASE_STRIP_H = 1800;
+  const [screen, setScreen] = useState("home");
+  const [selectedFrame, setSelectedFrame] = useState("square");
+  const [selectedFilter, setSelectedFilter] = useState("color");
+  const [photos, setPhotos] = useState([]);
+  const [countdown, setCountdown] = useState(null);
+  const [isTakingPhotos, setIsTakingPhotos] = useState(false);
 
-const SLOTS_PX = {
-  4: [
-    { x: 60, y: 50, w: 480, h: 385 },
-    { x: 60, y: 485, w: 480, h: 380 },
-    { x: 60, y: 922, w: 480, h: 368 },
-    { x: 60, y: 1352, w: 480, h: 368 },
-  ],
-  3: [
+  const TOTAL_PHOTOS = 3;
+
+  const stripImages = {
+    squarePreview: "/5sos-square-preview.png",
+    starPreview: "/5sos-star-preview.png",
+    squareFinal: "/5sos-square.png",
+    starFinal: "/5sos-star.png",
+  };
+
+  // Same square photo slots used for BOTH square + star strips
+  const photoSlots = [
     { x: 60, y: 60, w: 480, h: 444 },
     { x: 60, y: 536, w: 480, h: 444 },
     { x: 60, y: 1009, w: 480, h: 444 },
-  ],
-};
-
-const FINAL_BLEED_BY_FRAME = {
-  3: { x: 4, y: 6 },
-  4: { x: 10, y: 12 },
-};
-
-const COUNTDOWN_SECONDS = 5;
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function waitForVideoReady(v) {
-  return new Promise((res) => {
-    if (!v) return res();
-    if (v.readyState >= 2 && v.videoWidth > 0) return res();
-    const onReady = () => {
-      v.removeEventListener("loadeddata", onReady);
-      res();
-    };
-    v.addEventListener("loadeddata", onReady);
-  });
-}
-
-function expandRect(r, bleed) {
-  return {
-    x: r.x - bleed.x,
-    y: r.y - bleed.y,
-    w: r.w + bleed.x * 2,
-    h: r.h + bleed.y * 2,
-  };
-}
-
-// cover-crop draw (like object-fit: cover)
-function drawCover(ctx, img, dx, dy, dw, dh) {
-  const iw = img.width;
-  const ih = img.height;
-  const ir = iw / ih;
-  const br = dw / dh;
-
-  let sw, sh, sx, sy;
-
-  if (ir > br) {
-    sh = ih;
-    sw = ih * br;
-    sx = (iw - sw) / 2;
-    sy = 0;
-  } else {
-    sw = iw;
-    sh = iw / br;
-    sx = 0;
-    sy = (ih - sh) / 2;
-  }
-
-  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-}
-
-async function loadImage(src) {
-  return new Promise((res, rej) => {
-    const im = new Image();
-    im.crossOrigin = "anonymous";
-    im.onload = () => res(im);
-    im.onerror = () => rej(new Error(`Failed to load image: ${src}`));
-    im.src = src;
-  });
-}
-
-// Convert base 600x1800 rect to responsive DOM %
-function slotPxToDomStyle(r) {
-  return {
-    position: "absolute",
-    left: `${(r.x / BASE_STRIP_W) * 100}%`,
-    top: `${(r.y / BASE_STRIP_H) * 100}%`,
-    width: `${(r.w / BASE_STRIP_W) * 100}%`,
-    height: `${(r.h / BASE_STRIP_H) * 100}%`,
-  };
-}
-
-export default function App() {
-  const [step, setStep] = useState("start"); // start | filter | frame | booth | result
-  const [mode, setMode] = useState(null); // "color" | "bw"
-  const [frame, setFrame] = useState(4); // 3 | 4
-
-  const overlaySet = OVERLAYS[frame];
-  const slotsPx = useMemo(() => SLOTS_PX[frame], [frame]);
-
-  const videoRef = useRef(null);
-  const shutterRef = useRef(null);
-
-  const [stream, setStream] = useState(null);
-  const [countdown, setCountdown] = useState(null);
-  const [flashOn, setFlashOn] = useState(false);
-
-  const [shots, setShots] = useState([]); // dataURLs
-  const [finalUrl, setFinalUrl] = useState("");
-
-  // ✅ Frame picker can use preview image; Booth MUST use final image
-  const framePickerSrc = overlaySet?.preview || overlaySet?.final;
-  const boothOverlaySrc = overlaySet?.final; // ✅ the transparent-window strip
+  ];
 
   useEffect(() => {
-    if (step !== "booth") return;
-
-    let cancelled = false;
-
-    async function startCam() {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
-        if (cancelled) return;
-
-        setStream(s);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          await videoRef.current.play();
-        }
-      } catch (e) {
-        console.error(e);
-        alert("Camera permission required (HTTPS on mobile).");
-      }
+    if (screen === "booth") {
+      startCamera();
     }
 
-    startCam();
     return () => {
-      cancelled = true;
+      stopCamera();
     };
-  }, [step]);
+  }, [screen]);
 
-  useEffect(() => {
-    if (step !== "booth" && stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      setStream(null);
+  const getStripImage = (type, mode) => {
+    if (mode === "preview") {
+      return type === "star"
+        ? stripImages.starPreview
+        : stripImages.squarePreview;
     }
-  }, [step, stream]);
 
-  function resetAll() {
-    setMode(null);
-    setFrame(4);
-    setShots([]);
-    setFinalUrl("");
+    return type === "star" ? stripImages.starFinal : stripImages.squareFinal;
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      alert("Camera access is needed to use the booth.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const startBooth = async () => {
+    if (!videoRef.current) return;
+
+    setPhotos([]);
+    setIsTakingPhotos(true);
+
+    const capturedPhotos = [];
+
+    for (let i = 0; i < TOTAL_PHOTOS; i++) {
+      for (let count = 3; count > 0; count--) {
+        setCountdown(count);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      setCountdown("★");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+
+      const video = videoRef.current;
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+
+      context.filter = selectedFilter === "bw" ? "grayscale(100%)" : "none";
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      context.filter = "none";
+
+      const photoData = canvas.toDataURL("image/png");
+
+      capturedPhotos.push(photoData);
+      setPhotos([...capturedPhotos]);
+
+      await new Promise((resolve) => setTimeout(resolve, 650));
+    }
+
     setCountdown(null);
-    setFlashOn(false);
-    setStep("start");
-  }
+    setIsTakingPhotos(false);
+    stopCamera();
+    setScreen("final");
+  };
 
-  async function captureFrameFromVideo() {
-    const v = videoRef.current;
-    if (!v) return "";
+  const goHome = () => {
+    stopCamera();
+    setPhotos([]);
+    setCountdown(null);
+    setIsTakingPhotos(false);
+    setScreen("home");
+  };
 
-    await waitForVideoReady(v);
+  const retakePhotos = () => {
+    setPhotos([]);
+    setCountdown(null);
+    setIsTakingPhotos(false);
+    setScreen("booth");
+  };
 
-    const vw = v.videoWidth || 1280;
-    const vh = v.videoHeight || 720;
-
-    const outW = 1600;
-    const outH = Math.round((outW * vh) / vw);
-
-    const c = document.createElement("canvas");
-    c.width = outW;
-    c.height = outH;
-    const ctx = c.getContext("2d");
-
-    // mirror
-    ctx.save();
-    ctx.translate(outW, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(v, 0, 0, outW, outH);
-    ctx.restore();
-
-    if (mode === "bw") {
-      const imgData = ctx.getImageData(0, 0, outW, outH);
-      const d = imgData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        d[i] = d[i + 1] = d[i + 2] = gray;
-      }
-      ctx.putImageData(imgData, 0, 0);
-    }
-
-    return c.toDataURL("image/jpeg", 0.92);
-  }
-
-  async function buildFinalStrip(photos) {
-    const overlayImg = await loadImage(overlaySet.final);
-    const W = overlayImg.naturalWidth || overlayImg.width;
-    const H = overlayImg.naturalHeight || overlayImg.height;
-
-    const sx = W / BASE_STRIP_W;
-    const sy = H / BASE_STRIP_H;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext("2d");
-
-    const imgs = await Promise.all(photos.map((src) => loadImage(src)));
-    ctx.clearRect(0, 0, W, H);
-
-    const bleed = FINAL_BLEED_BY_FRAME[frame] || { x: 0, y: 0 };
-
-    imgs.forEach((im, i) => {
-      const r0 = slotsPx[i];
-      if (!r0) return;
-      const r = expandRect(r0, bleed);
-      drawCover(ctx, im, r.x * sx, r.y * sy, r.w * sx, r.h * sy);
+  const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = src;
     });
+  };
 
-    ctx.drawImage(overlayImg, 0, 0, W, H);
+  const drawCoverImage = (context, image, x, y, w, h) => {
+    const imageRatio = image.width / image.height;
+    const slotRatio = w / h;
 
-    return canvas.toDataURL("image/png");
-  }
+    let sx;
+    let sy;
+    let sw;
+    let sh;
 
-  async function takePhotos() {
-    try {
-      setShots([]);
-      setFinalUrl("");
+    if (imageRatio > slotRatio) {
+      sh = image.height;
+      sw = image.height * slotRatio;
+      sx = (image.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = image.width;
+      sh = image.width / slotRatio;
+      sx = 0;
+      sy = (image.height - sh) / 2;
+    }
 
-      const collected = [];
+    context.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+  };
 
-      for (let i = 0; i < frame; i++) {
-        for (let n = COUNTDOWN_SECONDS; n >= 1; n--) {
-          setCountdown(n);
-          await sleep(1000);
-        }
-        setCountdown(null);
+  const createFinalStripImage = async () => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
 
-        setFlashOn(true);
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    canvas.width = 600;
+    canvas.height = 1800;
 
-        try {
-          if (shutterRef.current) {
-            shutterRef.current.currentTime = 0;
-            await shutterRef.current.play();
-          }
-        } catch {}
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
-        await sleep(220);
-        setFlashOn(false);
+    for (let i = 0; i < photos.length; i++) {
+      const photoImage = await loadImage(photos[i]);
+      const slot = photoSlots[i];
 
-        const dataUrl = await captureFrameFromVideo();
-        collected.push(dataUrl);
+      context.save();
 
-        // ✅ update preview immediately
-        setShots([...collected]);
-
-        if (i < frame - 1) await sleep(900);
+      if (selectedFilter === "bw") {
+        context.filter = "grayscale(100%)";
       }
 
-      const built = await buildFinalStrip(collected);
-      setFinalUrl(built);
-      setStep("result");
-    } catch (e) {
-      console.error(e);
-      alert("Something went wrong while building the strip.");
+      drawCoverImage(context, photoImage, slot.x, slot.y, slot.w, slot.h);
+      context.restore();
     }
-  }
 
-  async function downloadStrip() {
-    if (!finalUrl) return;
+    const finalFrameImage = await loadImage(
+      getStripImage(selectedFrame, "final")
+    );
 
-    const filename = `kissco-strip-${frame}-${mode || "color"}.png`;
+    context.drawImage(finalFrameImage, 0, 0, canvas.width, canvas.height);
 
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, "image/png");
+    });
+  };
+
+  const shareFinalStrip = async () => {
     try {
-      const res = await fetch(finalUrl);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const blob = await createFinalStripImage();
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const file = new File([blob], "5sos-photo-strip.png", {
+        type: "image/png",
+      });
 
-      setTimeout(() => {
-        try { window.open(url, "_blank"); } catch {}
-        URL.revokeObjectURL(url);
-      }, 200);
-    } catch (e) {
-      console.error(e);
-      window.open(finalUrl, "_blank");
-    }
-  }
-
-  async function shareStrip() {
-    if (!finalUrl) return;
-    try {
-      const res = await fetch(finalUrl);
-      const blob = await res.blob();
-      const file = new File([blob], "kissco-strip.png", { type: "image/png" });
-
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: "Kissco Booth",
-          text: "My photo strip 💗",
+          title: "5SOS Photo Booth",
+          text: "My 5SOS photo strip!",
           files: [file],
         });
       } else {
-        downloadStrip();
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "5sos-photo-strip.png";
+        link.click();
       }
-    } catch {
-      downloadStrip();
+    } catch (error) {
+      console.error("Share failed:", error);
+      alert("Could not share the strip. Try again.");
     }
-  }
+  };
+
+  const renderStars = () => (
+    <div className="star-bg">
+      {Array.from({ length: 28 }).map((_, index) => (
+        <span key={index}>★</span>
+      ))}
+    </div>
+  );
+
+  const renderStrip = (type, mode = "preview") => {
+    const stripSrc = getStripImage(type, mode);
+    const shouldShowPhotos = mode === "booth" || mode === "final";
+
+    if (mode === "preview") {
+      return (
+        <div className={`strip strip-${type} preview`}>
+          <img
+            src={stripSrc}
+            alt={`${type} strip preview`}
+            className="strip-design-image preview-only"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`strip strip-${type} ${mode}`}>
+        <div className="strip-photo-layer">
+          {[0, 1, 2].map((slot) => (
+            <div
+              key={slot}
+              className={`design-photo-window ${type} slot-${slot + 1}`}
+            >
+              {shouldShowPhotos && photos[slot] ? (
+                <img
+                  src={photos[slot]}
+                  alt={`Photo ${slot + 1}`}
+                  className={selectedFilter === "bw" ? "strip-photo-bw" : ""}
+                />
+              ) : (
+                <div className="design-placeholder">{slot + 1}</div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <img
+          src={stripSrc}
+          alt={`${type} strip design`}
+          className="strip-design-image"
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="app">
-      <div className="screen">
-        <audio ref={shutterRef} src="/assets/shutter.mp3" preload="auto" />
+      {renderStars()}
 
-        {step === "start" && (
-          <>
-            <div className="startRow">
-              <div className="startStrips">
-                <img className="startStrip tiltLeft" src={OVERLAYS[4].startSample} alt="sample strip left" />
-                <img className="startStrip tiltRight" src={OVERLAYS[3].startSample} alt="sample strip right" />
+      {screen === "home" && (
+        <main className="home-screen">
+          <section className="hero-card">
+            <p className="eyebrow">5SOS PHOTO BOOTH</p>
+
+            <h1>Everyone’s a Star in the 5SOS Booth</h1>
+
+            <p className="subtitle">
+              Pick your photo style, choose your strip, and capture your own
+              5SOS-inspired star moment.
+            </p>
+
+            <div className="selected-row">
+              <div>
+                <span>Photo Filter</span>
+                <strong>{selectedFilter === "bw" ? "B&W" : "Color"}</strong>
               </div>
 
-              <button className="tapBtn" onClick={() => setStep("filter")} aria-label="Tap to start">
-                <svg className="tapSvg" viewBox="0 0 200 200">
-                  <defs>
-                    <path
-                      id="circlePath"
-                      d="M 100, 100 m -74, 0 a 74,74 0 1,1 148,0 a 74,74 0 1,1 -148,0"
-                    />
-                  </defs>
-                  <text className="tapText">
-                    <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
-                      TAP TO START • TAP TO START • TAP TO START •
-                    </textPath>
-                  </text>
-                </svg>
-                <div className=""></div>
-              </button>
+              <div>
+                <span>Strip Design</span>
+                <strong>
+                  {selectedFrame === "star" ? "Star Strip" : "Square Strip"}
+                </strong>
+              </div>
             </div>
 
-            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
-          </>
-        )}
+            <div className="section-box">
+              <h2>Pick photo style</h2>
 
-        {step === "filter" && (
-          <>
-            <div className="center">
-              <div className="titleSmall">PICK YOUR COLOR</div>
+              <div className="filter-row">
+                <button
+                  type="button"
+                  className={selectedFilter === "color" ? "active" : ""}
+                  onClick={() => setSelectedFilter("color")}
+                >
+                  Color
+                </button>
+
+                <button
+                  type="button"
+                  className={selectedFilter === "bw" ? "active" : ""}
+                  onClick={() => setSelectedFilter("bw")}
+                >
+                  B&W
+                </button>
+              </div>
             </div>
 
-            <div className="buttonRow">
-              <button className={`bigPill ${mode === "color" ? "active" : ""}`} onClick={() => setMode("color")}>
-                COLOR
-              </button>
-              <div className="orText">OR</div>
-              <button className={`bigPill ${mode === "bw" ? "active" : ""}`} onClick={() => setMode("bw")}>
-                B&amp;W
-              </button>
+            <div className="section-box">
+              <h2>Pick your strip design</h2>
+
+              <div className="strip-grid">
+                <button
+                  type="button"
+                  className={`strip-card ${
+                    selectedFrame === "square" ? "active" : ""
+                  }`}
+                  onClick={() => setSelectedFrame("square")}
+                >
+                  {selectedFrame === "square" && (
+                    <span className="badge">Selected</span>
+                  )}
+
+                  {renderStrip("square", "preview")}
+
+                  <strong>□ Square Strip</strong>
+                </button>
+
+                <button
+                  type="button"
+                  className={`strip-card ${
+                    selectedFrame === "star" ? "active" : ""
+                  }`}
+                  onClick={() => setSelectedFrame("star")}
+                >
+                  {selectedFrame === "star" && (
+                    <span className="badge">Selected</span>
+                  )}
+
+                  {renderStrip("star", "preview")}
+
+                  <strong>★ Star Strip</strong>
+                </button>
+              </div>
             </div>
 
-            <button className="primaryBtn" disabled={!mode} onClick={() => setStep("frame")}>
-              NEXT
+            <button
+              type="button"
+              className="start-button"
+              onClick={() => setScreen("booth")}
+            >
+              Start My Star Strip
+            </button>
+          </section>
+        </main>
+      )}
+
+      {screen === "booth" && (
+        <main className="booth-screen">
+          <div className="top-bar">
+            <button type="button" onClick={goHome}>
+              ← Back
             </button>
 
-            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
-          </>
-        )}
+            <p>
+              {selectedFilter === "bw" ? "B&W" : "Color"} +{" "}
+              {selectedFrame === "star" ? "Star Strip" : "Square Strip"}
+            </p>
+          </div>
 
-        {step === "frame" && (
-          <>
-            <div className="center">
-              <div className="titleSmall">PICK YOUR FRAME</div>
-            </div>
-
-            <div className="frameChoices">
-              {[3, 4].map((n) => (
-                <div key={n} className={`frameCard ${frame === n ? "selected" : ""}`} onClick={() => setFrame(n)}>
-                  <img className="frameImg" src={OVERLAYS[n].preview || OVERLAYS[n].final} alt={`frame ${n}`} />
-                  <div className="frameLabel">{n} STRIP</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="frameButtonRow">
-              <button className="secondaryBtn" onClick={() => setStep("filter")}>BACK</button>
-              <button className="primaryBtn" onClick={() => setStep("booth")}>START</button>
-            </div>
-
-            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
-          </>
-        )}
-
-        {step === "booth" && (
-          <>
-            <div className="boothHeader">
-              <div className="titleSmall">GET READY!</div>
-              <div className="subSmall">THERE IS A {COUNTDOWN_SECONDS} SECOND TIMER BETWEEN SHOTS.</div>
-            </div>
-
-            <div className="boothGrid">
-             <div className="cameraWrap">
+          <section className="booth-grid">
+            <div className="camera-card">
+              <div className="camera-frame">
                 <video
-                  className={`video ${mode === "bw" ? "bw" : ""}`}
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
+                  className={selectedFilter === "bw" ? "bw-video" : ""}
                 />
 
-                {/* ✅ camera guide overlay */}
-                <div className="camGuide">
-                  <div className="camGuideFrame" />
-                </div>
-
-                <div className={`flash ${flashOn ? "on" : ""}`} />
                 {countdown && <div className="countdown">{countdown}</div>}
               </div>
 
-              <div className="stripPreviewWrap">
-                <div className="stripGlow" />
-
-                <div className="stripPreview">
-                  {/* ✅ White boxes exist via CSS; when shot exists, image appears */}
-                  {slotsPx.map((r0, idx) => {
-                    const src = shots[idx];
-                    return (
-                      <div
-                        key={idx}
-                        className={`previewSlot ${src ? "filled" : ""}`}
-                        style={slotPxToDomStyle(r0)}
-                      >
-                        {src ? <img className="previewImg" src={src} alt={`shot ${idx + 1}`} /> : null}
-                      </div>
-                    );
-                  })}
-
-                  {/* ✅ Booth uses FINAL overlay (transparent windows) */}
-                  <img
-                    className="stripOverlay"
-                    src={boothOverlaySrc}
-                    alt="booth strip overlay"
-                    draggable={false}
-                  />
-                </div>
-              </div>
+              <button
+                type="button"
+                className="capture-button"
+                onClick={startBooth}
+                disabled={isTakingPhotos}
+              >
+                {isTakingPhotos ? "Taking Photos..." : "Take 3 Photos"}
+              </button>
             </div>
 
-            <div className="buttonRowResult">
-              <button className="secondaryBtn" onClick={() => setStep("frame")}>BACK</button>
-              <button className="primaryBtn" onClick={takePhotos}>TAKE PHOTOS</button>
+            <div className="live-strip">
+              {renderStrip(selectedFrame, "booth")}
+            </div>
+          </section>
+        </main>
+      )}
+
+      {screen === "final" && (
+        <main className="final-screen">
+          <section className="hero-card final-card">
+            <p className="eyebrow">YOUR 5SOS STRIP</p>
+
+            <h1>Final Booth Strip</h1>
+
+            <p className="subtitle">
+              Here’s your finished {selectedFilter === "bw" ? "B&W" : "color"}{" "}
+              {selectedFrame === "star" ? "star" : "square"} strip.
+            </p>
+
+            <div className="final-strip">
+              {renderStrip(selectedFrame, "final")}
             </div>
 
-            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
-          </>
-        )}
+            <div className="final-actions">
+              <button type="button" onClick={retakePhotos}>
+                Retake
+              </button>
 
-        {step === "result" && (
-          <>
-            <div className="center">
-              <div className="titleSmall">YOU LOOK SO GOOD!</div>
+              <button type="button" onClick={shareFinalStrip}>
+                Share / Download
+              </button>
+
+              <button type="button" onClick={goHome}>
+                New Strip
+              </button>
             </div>
-
-            <div className="resultWrap">
-              {finalUrl ? <img className="finalStrip" src={finalUrl} alt="final strip" /> : <div className="loadingBox">BUILDING…</div>}
-            </div>
-
-            <div className="buttonRowResult">
-              <button className="primaryBtn" onClick={downloadStrip} disabled={!finalUrl}>DOWNLOAD</button>
-              <button className="secondaryBtn" onClick={shareStrip} disabled={!finalUrl}>SHARE</button>
-              <button className="secondaryBtn" onClick={resetAll}>START OVER</button>
-            </div>
-
-            <div className="credit">BOOTH MADE BY @LEILASVISUALS</div>
-          </>
-        )}
-      </div>
+          </section>
+        </main>
+      )}
     </div>
   );
 }
+
+export default App;
